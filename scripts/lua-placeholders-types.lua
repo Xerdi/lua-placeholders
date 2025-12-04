@@ -115,6 +115,9 @@ end
 function str_param:val()
     local value = self:raw_val()
     if value then
+        if type(value) == 'table' and type(value.year) == 'number' then
+          value = '\\printdateTeX{' .. value.year .. '/' .. value.month .. '/' .. value.day .. '}'
+        end
         local formatted, _ = string.gsub(value, '\n', ' ')
         return formatted
     end
