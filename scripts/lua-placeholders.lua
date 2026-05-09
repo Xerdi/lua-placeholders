@@ -58,7 +58,16 @@ setmetatable(lua_placeholders, lua_placeholders_mt)
 local lua_placeholders_namespace = require('lua-placeholders-namespace')
 local load_resource = require('lua-placeholders-parser')
 
+-- Look up a parameter by key.  When invoked from inside a \fortablerow
+-- iteration (i.e. the row stack is non-empty and the topmost frame has an
+-- active row), cells of the active row shadow the namespace.  This is what
+-- lets list/object cells keep their type: \forlistitem, \paramfield etc.
+-- find the cell here instead of looking only at the top-level namespace.
 local function get_param(key, namespace)
+    local frame = row_stack[#row_stack]
+    if frame and frame.current_row and frame.current_row[key] then
+        return frame.current_row[key]
+    end
     namespace = namespace or tex.jobname
     local _namespace = api.namespaces[namespace]
     return _namespace and _namespace:param(key)
@@ -228,9 +237,22 @@ function api.set_row_macros(idx_str)
         tex.error('lua-placeholders: row index ' .. tostring(idx) .. ' out of range')
         return
     end
+    -- Stash the row so get_param resolves \param/\forlistitem/\paramfield/...
+    -- references against this row's cells before falling back to the namespace.
+    frame.current_row = row
     for col_key, cell in pairs(row) do
-        local val = cell:val() or ''
-        token.set_macro(col_key, val, 'global')
+        -- list/object/table cells aren't flattened: the type is preserved on
+        -- the row frame and the user reaches them via the type-specific
+        -- commands (\forlistitem, \paramfield, \paramobject, \fortablerow).
+        -- Everything else, including synthetic placeholder cells, becomes a
+        -- plain control sequence the row macro can drop in directly.
+        if cell.type ~= 'list' and cell.type ~= 'object' and cell.type ~= 'table' then
+            local val = cell:val()
+            if val == nil then
+                val = '\\paramplaceholder{' .. (cell.placeholder or col_key) .. '}'
+            end
+            token.set_macro(col_key, val, 'global')
+        end
     end
 end
 

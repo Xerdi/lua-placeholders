@@ -280,14 +280,21 @@ function base_param:load(key, value)
             table.insert(self.values, row)
         end
     elseif self.type == 'object' then
+        -- Make per-instance field copies before loading.  Without this, copying
+        -- an object column to use as a row cell shares the field params with
+        -- the column spec, so loading row 2 mutates the same field instance
+        -- and silently overwrites row 1's values.
+        local own_fields = {}
         for field_key, field in pairs(self.fields) do
-            local field_val = value[field_key]
-            if field_val then
-                field:load(field_key, field_val)
-            else
-                texio.write_nl('Warning: Passed unknown field to object', field_key)
+            local field_copy = table.copy(field)
+            field_copy.value = nil
+            local field_val = value and value[field_key]
+            if field_val ~= nil then
+                field_copy:load(field_key, field_val)
             end
+            own_fields[field_key] = field_copy
         end
+        self.fields = own_fields
     else
         self.value = value
     end

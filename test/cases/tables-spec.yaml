@@ -28,3 +28,21 @@ weird value table:
     note:
       type: string
       placeholder: Note
+order table:
+  type: table
+  columns:
+    customer:
+      type: string
+      placeholder: The customer
+    items:
+      type: list
+      item type: string
+    shipping:
+      type: object
+      fields:
+        street:
+          type: string
+          placeholder: Street
+        city:
+          type: string
+          placeholder: City

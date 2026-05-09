@@ -105,4 +105,45 @@
         \fortablerow{weird value table}{rowW}
     \end{tabular}
 
+    \section*{Case 6: List cell --- type survives, accessed via \texttt{\textbackslash forlistitem}}
+
+    A column may itself have type \texttt{list}.  The cell isn't flattened
+    to a string; instead the row macro accesses it through the list's own
+    interface, exactly like a top-level list parameter.  Below the
+    \texttt{items} column in each row is iterated with
+    \texttt{\textbackslash forlistitem}.
+
+    \newcommand\itemBullet[1]{\textbullet\ #1\quad}
+    \newcommand\rowL{\customer & \forlistitem{items}{itemBullet} \\}
+    \begin{tabular}{l|l}
+        \textbf{Customer} & \textbf{Items} \\\hline
+        \fortablerow{order table}{rowL}
+    \end{tabular}
+
+    \section*{Case 7: Object cell --- type survives, accessed via \texttt{\textbackslash paramfield}}
+
+    Likewise, a column of type \texttt{object} keeps its field structure.
+    Accessing the \texttt{shipping} cell with
+    \texttt{\textbackslash paramfield} per field, or the
+    \texttt{paramobject} environment to bind every field as a local
+    macro, both work because lookups inside a row consult the active
+    row's cells before the global namespace.
+
+    \newcommand\rowO{\customer & \paramfield{shipping}{street} & \paramfield{shipping}{city} \\}
+    \begin{tabular}{l|l|l}
+        \textbf{Customer} & \textbf{Street} & \textbf{City} \\\hline
+        \fortablerow{order table}{rowO}
+    \end{tabular}
+
+    \medskip
+
+    Same payload, accessed with the \texttt{paramobject} environment:
+
+    \newcommand\rowOE{%
+        \begin{paramobject}{shipping}\customer{} lives at \street{} in \city.\end{paramobject}\\%
+    }
+    \begin{tabular}{l}
+        \fortablerow{order table}{rowOE}
+    \end{tabular}
+
 \end{document}

@@ -17,3 +17,19 @@ weird value table:
     note: € 1\,234,56
   - label: Mixed
     note: € 50 + 21\% VAT
+order table:
+  - customer: Alice
+    items:
+      - Widget
+      - Gadget
+    shipping:
+      street: 1 Main St
+      city: Springfield
+  - customer: Bob
+    items:
+      - Sprocket
+      - Cog
+      - Lever
+    shipping:
+      street: 2 Oak Ave
+      city: Shelbyville

@@ -52,8 +52,31 @@ breakage is gone.
  Subtotal    € 1 234,56
  Mixed       € 50 + 21% VAT
 
+Case 6: List cell — type survives, accessed via
+\forlistitem
+A column may itself have type list. The cell isn’t flattened to a string; instead
+the row macro accesses it through the list’s own interface, exactly like a top-
+level list parameter. Below the items column in each row is iterated with
+\forlistitem.
+  Customer Items
+  Alice         • Widget • Gadget
+  Bob           • Sprocket • Cog • Lever
+
+Case 7: Object cell — type survives, accessed via
+\paramfield
+Likewise, a column of type object keeps its field structure. Accessing the
+shipping cell with \paramfield per field, or the paramobject environment
+to bind every field as a local macro, both work because lookups inside a row
+consult the active row’s cells before the global namespace.
+ Customer Street              City
+ Alice          1 Main St Springfield
+ Bob            2 Oak Ave Shelbyville
+Same payload, accessed with the paramobject environment:
+ Alice lives at 1 Main St in Springfield.
+ Bob lives at 2 Oak Ave in Shelbyville.
 
 
 
-                                      2
+
+                                       2
 
