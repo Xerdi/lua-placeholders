@@ -1,0 +1,3 @@
+greeting:
+  type: string
+  default: Hello, plain LuaTeX

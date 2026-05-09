@@ -1,0 +1,14 @@
+% basic.tex -- Plain LuaTeX (not LuaLaTeX) smoke test for lua-placeholders.
+%
+% Compiled with `luatex basic.tex` directly; no LaTeX format, no .sty, no
+% \documentclass.  At this stage we just try to load the Lua module via
+% \directlua and print a simple parameter.  Anything that breaks here is a
+% LaTeX assumption baked into the Lua side that needs a plain-TeX shim --
+% the basis for the eventual tex/lua-placeholders.tex.
+\directlua{lua_placeholders = require('lua-placeholders')}
+
+\directlua{lua_placeholders.recipe('basic-spec.yaml', 'basic')}
+
+Greeting parameter: \directlua{lua_placeholders.param('greeting', 'basic')}.
+
+\bye

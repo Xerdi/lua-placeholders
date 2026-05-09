@@ -68,6 +68,12 @@ setmetatable(lua_placeholders, lua_placeholders_mt)
 local lua_placeholders_namespace = require('lua-placeholders-namespace')
 local load_resource = require('lua-placeholders-parser')
 
+-- LaTeX hook system (lthooks) is preloaded in LaTeX2e but absent from plain
+-- LuaTeX.  Detect once at module load; \NewHook / \UseOneTimeHook emissions
+-- below are gated on this so the same Lua core works in both engines without
+-- leaking the hook arguments into the document as text.
+local has_hooks = token.is_defined('NewHook') and token.is_defined('UseOneTimeHook')
+
 -- Look up a parameter by key.  When invoked from inside any active context
 -- (table row, object env, list-of-object iteration), the topmost frame's
 -- current entry shadows the top-level namespace.  This is what lets a cell
@@ -105,9 +111,11 @@ function api.recipe(path, namespace_name)
         namespace:load_recipe(raw_recipe)
     end
     -- The hooks need to be declared in order to work properly in every situation
-    tex.print('\\NewHook{namespace/' .. name .. '}')
-    tex.print('\\NewHook{namespace/' .. name .. '/loaded}')
-    tex.print('\\UseOneTimeHook{namespace/' .. name .. '}')
+    if has_hooks then
+        tex.print('\\NewHook{namespace/' .. name .. '}')
+        tex.print('\\NewHook{namespace/' .. name .. '/loaded}')
+        tex.print('\\UseOneTimeHook{namespace/' .. name .. '}')
+    end
 
     if namespace.payload_file and not namespace.payload_loaded then
         local raw_payload = load_resource(namespace.payload_file)
@@ -116,7 +124,9 @@ function api.recipe(path, namespace_name)
         else
             namespace:load_payload(raw_payload)
         end
-        tex.print('\\UseOneTimeHook{namespace/' .. name .. '/loaded}')
+        if has_hooks then
+            tex.print('\\UseOneTimeHook{namespace/' .. name .. '/loaded}')
+        end
     end
 end
 
@@ -137,7 +147,9 @@ function api.payload(path, namespace_name)
         else
             namespace:load_payload(raw_payload)
         end
-        tex.print('\\UseOneTimeHook{namespace/' .. name .. '/loaded}')
+        if has_hooks then
+            tex.print('\\UseOneTimeHook{namespace/' .. name .. '/loaded}')
+        end
     end
 end
 
