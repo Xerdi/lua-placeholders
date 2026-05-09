@@ -7,7 +7,18 @@ ifeq ($(OS),Windows_NT)
 	RM = del
 endif
 
-.PHONY: doc/lua-placeholders-manual.pdf doc/lua-placeholders-example/example.pdf
+export TEXINPUTS  := $(PACKAGE_DIR)/tex//:
+export LUAINPUTS  := $(PACKAGE_DIR)/scripts//:
+
+TEXMFHOME         := $(HOME)/src/texmf-packaging
+export TEXMFHOME
+
+TEST_BUILD_DIR  := $(PACKAGE_DIR)/test/build
+TEST_EXPECTED   := $(PACKAGE_DIR)/test/expected/example.txt
+EXAMPLE_DIR     := doc/lua-placeholders-example
+
+.PHONY: doc/lua-placeholders-manual.pdf doc/lua-placeholders-example/example.pdf \
+        test test-example test-update test-clean
 
 all: build clean
 
@@ -41,3 +52,41 @@ $(CONTRIBUTION): doc/lua-placeholders-manual.pdf clean
 	tar --transform 's,^\.,lua-placeholders,' \
 		--exclude=doc/.latexmkrc \
 		-czvf $(CONTRIBUTION) ./README.md ./doc ./scripts ./tex
+
+test: test-example
+
+$(TEST_BUILD_DIR)/example.pdf: $(EXAMPLE_DIR)/example.tex \
+                               $(EXAMPLE_DIR)/example.yaml \
+                               $(EXAMPLE_DIR)/example-specification.yaml \
+                               tex/lua-placeholders.sty \
+                               $(wildcard scripts/*.lua)
+	@mkdir -p $(TEST_BUILD_DIR)
+	cd $(EXAMPLE_DIR) && \
+	  $(COMPILE) -output-directory=$(TEST_BUILD_DIR) example
+
+$(TEST_BUILD_DIR)/example.txt: $(TEST_BUILD_DIR)/example.pdf
+	pdftotext -layout $< $@.raw
+	sed -E \
+	    -e 's|version [^ ]+ written on [0-9]{4}[-/][0-9]{2}[-/][0-9]{2}|version <VERSION> written on <DATE>|' \
+	    -e 's|^[[:space:]]+[A-Z][a-z]+ [0-9]{1,2}, [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
+	    -e 's|^[[:space:]]+[0-9]{1,2} [a-z]+ [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
+	    -e 's|^([[:space:]]+).+\xe2\x8c\xa9.+\xe2\x8c\xaa[[:space:]]*$$|\1<AUTHOR>|' \
+	    $@.raw > $@
+	@$(RM) $@.raw
+
+test-example: $(TEST_BUILD_DIR)/example.txt
+	@if [ ! -f $(TEST_EXPECTED) ]; then \
+	    echo "No example file at $(TEST_EXPECTED)."; \
+	    echo "Run 'make test-update' once to seed it, then commit."; \
+	    exit 1; \
+	fi
+	@diff -u $(TEST_EXPECTED) $< && echo "OK: example matches"
+
+test-update: $(TEST_BUILD_DIR)/example.txt
+	@mkdir -p $(dir $(TEST_EXPECTED))
+	cp $< $(TEST_EXPECTED)
+	@echo "Example file updated: $(TEST_EXPECTED)"
+	@echo "Inspect with: git diff $(TEST_EXPECTED)"
+
+test-clean:
+	$(RM) -rf $(TEST_BUILD_DIR)

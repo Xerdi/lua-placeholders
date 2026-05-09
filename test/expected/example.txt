@@ -1,0 +1,231 @@
+                   Lua [placeholders] Example∗
+                          <AUTHOR>
+                                  <DATE>
+
+
+
+Basics
+Wrong parameter:
+
+\param{non existing}       =⇒ [〈unknown〉 non existing]
+
+Conditional Parameter:
+
+\hasparam{list example}{is set}{is not set}               =⇒ is not set
+
+
+Before values loaded
+Boolean example:
+
+\param{bool example}       =⇒ false
+
+\ifparam{bool example}{TRUE}{FALSE}            =⇒ FALSE
+
+String example:
+
+\param{string example}       =⇒ “[A string]”
+
+Number example:
+
+\rawparam{\jobname}{number example}            =⇒ -1.21
+
+\param{number example}       =⇒ \numprint{-1.21} =⇒ −1.21
+
+
+
+
+  ∗ This example corresponds to lua-placeholders version <VERSION> written on <DATE>.
+
+
+
+
+                                                 1
+Number in foreign language:
+
+\selectlanguage{dutch}\param{number example}
+=⇒ −1,21
+
+List example:
+
+\param{list example}     =⇒ [A string, A second string]
+
+\begin{enumerate}
+  \newcommand\formatitem[1]{\item #1}
+  \forlistitem{list example}{formatitem}
+\end{enumerate}
+
+=⇒
+   1. [A string]
+   2. [A second string]
+
+Object example:
+
+\paramfield{object example}{name}
+\paramfield{object example}{email}
+\paramfield{object example}{grade}
+=⇒ [Your name] [Your email] 5.5
+
+\newcommand\name{...}
+\begin{paramobject}{object example}
+  \name \email \grade
+\end{paramobject}
+% And here it works again
+\name
+
+=⇒ [Your name] [Your email] 5.5 …
+
+Table example:
+
+\nprounddigits{2}
+\newcommand\formatrow{\description & \price \\}%
+\begin{tabular}{l | l}
+  \textbf{Description} & \textbf{Price} \\ \hline
+  \fortablerow{table example}{formatrow}
+\end{tabular}
+\npnoround
+
+        Description           Price
+=⇒
+        [The description]     [The price]
+
+
+
+                                           2
+After values loaded
+Boolean example:
+
+\param{bool example}    =⇒ true
+
+\ifparam{bool example}{TRUE}{FALSE}     =⇒ TRUE
+
+String example:
+
+\param{string example}   =⇒ “PeelInc.”
+
+Number example:
+
+\rawparam{\jobname}{number example}     =⇒ 1.21
+
+\param{number example}   =⇒ \numprint{1.21} =⇒ 1.21
+
+Number in foreign language:
+
+\selectlanguage{dutch}\param{number example}
+=⇒ \numprint{1.21} =⇒ 1,21
+
+List example:
+
+\param{list example}    =⇒ Tomatoes, Potatoes
+
+\begin{enumerate}
+  \newcommand\formatitem[1]{\item #1}
+  \forlistitem{list example}{formatitem}
+\end{enumerate}
+
+=⇒
+   1. Tomatoes
+   2. Potatoes
+
+Object example:
+
+\paramfield{object example}{name}
+\paramfield{object example}{email}
+\paramfield{object example}{grade}
+=⇒ John Doe j.doe@example.com 9.5
+
+\newcommand\name{...}
+\begin{paramobject}{object example}
+
+
+
+                                           3
+     \name \email \grade
+\end{paramobject}
+% And here it works again
+\name
+
+=⇒ John Doe j.doe@example.com 9.5 …
+
+Table example:
+
+\nprounddigits{2}
+\newcommand\formatrow{\description & \price \\}%
+\begin{tabular}{l | l}
+     \textbf{Description} & \textbf{Price} \\ \hline
+     \fortablerow{table example}{formatrow}
+\end{tabular}
+\npnoround
+
+          Description         Price
+=⇒        Peeling tomatoes    50.00
+          Peeling potatoes    25.00
+
+Payload File
+
+                                   Listing 1: example.yaml
+ 1 bool example: true
+ 2 string example: PeelInc.
+ 3 number example: 1.21
+ 4 list example:
+ 5      - Tomatoes
+ 6      - Potatoes
+ 7 object example:
+ 8      name: John Doe
+ 9      email: j.doe@example.com
+10      grade: 9.5
+11 table example:
+12      - description: Peeling tomatoes
+13       price: 50
+14      - description: Peeling potatoes
+15       price: 25
+
+
+Specification File
+
+                           Listing 2: example-specification.yaml
+ 1 bool example:
+ 2      type: bool
+ 3      default: false
+ 4 string example:
+
+
+
+                                              4
+5    type: string
+6    placeholder: A string
+7 number example:
+8    type: number
+9    default: -1.21
+10 list example:
+11   type: list
+12   item type: string
+13   default:
+14    - A string
+15    - A second string
+16 object example:
+17   type: object
+18   fields:
+19    name:
+20     type: string
+21     placeholder: Your name
+22    email:
+23     type: string
+24     placeholder: Your email
+25    grade:
+26     type: number
+27     default: 5.5
+28 table example:
+29   type: table
+30   columns:
+31    description:
+32     type: string
+33     placeholder: The description
+34    price:
+35     type: number
+36     placeholder: The price
+
+
+
+
+                                      5
+
