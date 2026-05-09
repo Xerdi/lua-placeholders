@@ -19,3 +19,12 @@ underscore table:
     unit_price:
       type: number
       placeholder: The unit price
+weird value table:
+  type: table
+  columns:
+    label:
+      type: string
+      placeholder: Label
+    note:
+      type: string
+      placeholder: Note

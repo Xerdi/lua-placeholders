@@ -83,4 +83,26 @@
         \fortablerow{underscore table}{rowU}
     \end{tabular}
 
+    \section*{Case 5: Special characters in cell values}
+
+    A cell may carry whatever \TeX{} can render --- but the YAML author
+    still has to obey \TeX's lexical rules.  In particular, a literal
+    \texttt{\%} must be written as \texttt{\textbackslash\%} in the
+    payload, otherwise \TeX{} sees the unescaped \texttt{\%} and treats
+    the rest of the line as a comment.  UTF-8 characters such as
+    \texttt{€} pass through unchanged because Lua\TeX's input encoding is
+    UTF-8 by default and the body font has the glyph.
+
+    Old string-replacement was also vulnerable to a Lua-pattern hazard:
+    \texttt{\%} in a cell value would be interpreted as a back-reference
+    by \texttt{string.gsub}'s replacement argument.  With
+    \texttt{token.set\_macro} the value is just bytes, so this class of
+    breakage is gone.
+
+    \newcommand\rowW{\label & \note \\}
+    \begin{tabular}{l|l}
+        \textbf{Label} & \textbf{Note} \\\hline
+        \fortablerow{weird value table}{rowW}
+    \end{tabular}
+
 \end{document}

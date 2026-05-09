@@ -10,3 +10,10 @@ underscore table:
   - item: 2
     item_name: Gadget
     unit_price: 14.5
+weird value table:
+  - label: VAT rate
+    note: 21\%
+  - label: Subtotal
+    note: € 1\,234,56
+  - label: Mixed
+    note: € 50 + 21\% VAT

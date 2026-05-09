@@ -26,18 +26,34 @@ and unit_price. Two issues appear:
   • \item is a prefix of \item_name. String-replacement substituted \item
     first, mangling \item_name. The macro-binding implementation defines
     each column as its own control sequence, so prefix collisions are impossible.
-
   • Without \ExplSyntaxOn, TEX reads \item_name as \item followed by the
     subscript token _ and the letters name, which fails. Wrap the row macro
     in \ExplSyntaxOn …\ExplSyntaxOff to flip _ to letter catcode at parse
     time so \item_name tokenises as one control sequence.
-
    #    Item      Unit price
  1.00   Widget          9.99
  2.00   Gadget         14.50
 
-
+Case 5: Special characters in cell values
+A cell may carry whatever TEX can render — but the YAML author still has
+to obey TEX’s lexical rules. In particular, a literal % must be written as \% in
 
 
                                        1
+the payload, otherwise TEX sees the unescaped % and treats the rest of the line
+as a comment. UTF-8 characters such as € pass through unchanged because
+LuaTEX’s input encoding is UTF-8 by default and the body font has the glyph.
+Old string-replacement was also vulnerable to a Lua-pattern hazard: % in a
+cell value would be interpreted as a back-reference by string.gsub’s replace-
+ment argument. With token.set_macro the value is just bytes, so this class of
+breakage is gone.
+ Label       Note
+ VAT rate 21%
+ Subtotal    € 1 234,56
+ Mixed       € 50 + 21% VAT
+
+
+
+
+                                      2
 
