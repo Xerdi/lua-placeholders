@@ -32,7 +32,8 @@ jobs:
             git config --global --add safe.directory /build/lua-placeholders
             make -C lua-placeholders test build TEXMFHOME=/root/texmf
       - name: Archive Documentation
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
           name: build
           path: ${{ github.workspace }}/lua-placeholders/doc
