@@ -66,7 +66,8 @@
     \title{Lua \paramplaceholder{placeholders}\thanks{This document corresponds to \texttt{lua-placeholders} version \gitversion, written on \gitdate}}
     \maketitle
     \begin{abstract}
-        A package for creating `example' documents, which show parameters as placeholders and `actual copy' documents, which show parameters with the real data, written in Lua\TeX{}.
+        A package for producing `example' documents --- parameters rendered as placeholders --- and `actual copy' documents --- parameters replaced with real values --- driven by YAML and a small Lua core.
+        Supports Lua\LaTeX\ via \texttt{lua-placeholders.sty} and plain Lua\TeX\ via \texttt{lua-placeholders.tex}.
     \end{abstract}
 
     \tableofcontents
@@ -74,26 +75,32 @@
     \clearpage
 
     \section{Introduction}
-    This package is meant for setting parameters in a Lua\LaTeX{} document in a more programmatically way with YAML\@.
+    This package is meant for setting parameters in a document programmatically via YAML\@.
     Parameters can be specified by adding a `recipe' file.
     These recipe files describe the parameter's type, placeholders and/or default values.
     From thereon, the placeholders can be displayed in the document and an `\textit{example}' document can be created.
     An `\textit{actual copy}' document can be created by loading additional payload files, which all must correspond to a recipe file.
 
+    \paragraph{A note on engines and naming.}
+    \texttt{lua-placeholders} is a Lua module wrapped by two thin engine bridges: a \LaTeX\ package, \texttt{lua-placeholders.sty} for use under Lua\LaTeX, and a plain-format input, \texttt{lua-placeholders.tex} for use under Lua\TeX.
+    Throughout this manual, where we write \LaTeX\ we specifically mean Lua\LaTeX, and where we write \TeX\ we mean plain Lua\TeX --- there is no support for any other engine, since the runtime requires Lua\TeX\ primitives.
+    Each macro section also states the plain-\TeX\ form when it differs from the \LaTeX\ one (typically by lacking the optional \meta{namespace} argument).
+
     \begin{multicols}{2}
         \subsection{Pros}
         \begin{enumerate}[align=left]
-            \item Create an `\textit{example}' or `\textit{actual copy}' document with the same \LaTeX{} source and YAML recipe.
-            \item Integration within systems is as easy as compiling a normal \LaTeX{} document, especially thanks to the fallback support to JSON, which is quite renown in programming languages.
-            \item Supports multiple data types and formatting macros which work in most \TeX{} environments, like \texttt{enumerate} or \texttt{tabular}.
+            \item Create an `\textit{example}' or `\textit{actual copy}' document from the same source and YAML recipe.
+            \item Integration is as easy as compiling a normal document, especially thanks to the fallback support to JSON.
+            \item Supports multiple data types and formatting macros which work in most environments, like \texttt{enumerate} or \texttt{tabular}.
+            \item Same Lua core powers both the \LaTeX\ and the \TeX\ bridge; new macros land in both at once.
         \end{enumerate}
         \columnbreak
         \subsection{Cons}
         \begin{enumerate}[align=left]
-            \item The package only works with Lua\LaTeX{}.
+            \item Requires a Lua-based engine: Lua\LaTeX\ or plain Lua\TeX. Other engines are not supported.
             \item In order for the files to be loaded, commandline option `\texttt{--shell-restricted}' is required.
         \end{enumerate}
-        \textbf{Important:} Up until version 1.0.3, this documentation suggested `\texttt{--shell-escape}' instead, which allows the execution of programs and isn't a requirement for this package since the introduction of \texttt{lua-tinyyaml}.
+        \textbf{Important:} In the 1.x.x series this documentation suggested `\texttt{--shell-escape}' instead, which allows the execution of programs and isn't a requirement for this package since the introduction of \texttt{lua-tinyyaml}.
     \end{multicols}
 
     \begin{multicols}{2}
@@ -104,21 +111,42 @@
         Therefore, I urge everyone that still requires the execution of programs to whitelist those programs in \texttt{shell\_escape\_commands} instead.
         This can be configured system-wide in \texttt{texmf.cnf} or within a Lua initialization script using the \texttt{texconfig} table, thoroughly explained in section 4.1.3, 4.2.4 and 10.4 of the Lua\TeX\ manual\cite{luatex}.
 
-        \columnbreak
+        \subsection{Dependencies}\label{sec:deps}
+        The Lua core has \emph{no hard dependency} on any \LaTeX\ package.
+        The \LaTeX\ bridge (\texttt{.sty}) loads \texttt{textcomp} for the placeholder symbols and \texttt{xspace} for trailing-space handling inside the \texttt{paramobject} environment; the \TeX\ bridge (\texttt{.tex}) needs neither.
+        The following packages are \emph{optional} --- the \LaTeX\ bridge falls back gracefully if they are absent:
+        \begin{itemize}[align=left,leftmargin=*]
+            \item \texttt{numprint}\cite{numprint} for number formatting via \cmd{\paramnumberformat}; without it, numeric values render as-is.
+            \item \texttt{isodate}\cite{isodate} for date formatting via \cmd{\paramdateformat} when \texttt{lua-tinyyaml} produces a Lua date table from a \texttt{YYYY-MM-DD} payload scalar.
+        \end{itemize}
+        Booleans are handled by a self-contained \cmd{\newif}-style flag bridge built on \cmd{\let} and \cmd{\csname}; \texttt{ifthen} is no longer required.
 
-        \subsection{Dependencies}
-        For proper number formatting, package \texttt{numprint}\cite{numprint} is required.
-        For booleans, the package \texttt{ifthen}\cite{ifthen} is required.
         \subsubsection{YAML Support}
-        Starting from version 1.0.2, the preferred YAML implementation has changed from \texttt{lyaml}\cite{lyaml} to \texttt{lua-tinyyaml}\cite{lua-tinyyaml}.
+        During the 1.x.x series the preferred YAML implementation changed from \texttt{lyaml}\cite{lyaml} to \texttt{lua-tinyyaml}\cite{lua-tinyyaml}.
         The reason for this change is that \texttt{lua-tinyyaml} doesn't require any platform-specific dependencies, such as \texttt{libYAML}\cite{libYAML}.
 
         The older YAML implementation will still function for older installations that do not have \texttt{lua-tinyyaml}.
         As before, when no YAML implementation is found, \texttt{lua-placeholders} will fall back to JSON support.
+
+        \subsubsection{\TeX\ vs \LaTeX\ differences}\label{sec:engine-diff}
+        The Lua core is identical for both engines; only the bridge file changes.
+        Concretely:
+        \begin{itemize}[align=left,leftmargin=*]
+            \item \textbf{Optional arguments.}\hspace*{0.5em}
+                  \LaTeX\ macros take an optional \oarg{namespace}; the \TeX\ forms have no optional argument and use \cmd{\curnamespace} (settable via \cmd{\setnamespace}).
+            \item \textbf{Environments.}\hspace*{0.5em}
+                  The \texttt{paramobject} environment is a \cmd{\begin}/\cmd{\end} pair under \LaTeX\ and a \cmd{\paramobject}/\cmd{\endparamobject} macro pair under \TeX.
+            \item \textbf{Hooks.}\hspace*{0.5em}
+                  Under \LaTeX\ each \cmd{\loadrecipe} fires \texttt{namespace/}\meta{name} via \texttt{lthooks}, and each \cmd{\loadpayload} fires \texttt{namespace/}\meta{name}\texttt{/loaded}; under \TeX\ no hook system is available so the emissions are skipped at the Lua level.
+                  The parameter state is fully populated either way --- only attached callbacks are unavailable in \TeX.
+            \item \textbf{Booleans.}\hspace*{0.5em}
+                  Same call shape on both sides (\cmd{\paramnewbool} / \cmd{\paramsetbool}); the bridge backs them with \cmd{\let}-based flags rather than \cmd{\newif} so they work identically without \texttt{ifthen}.
+            \item \textbf{Engine wrappers} (\cmd{\paramnumberformat}, \cmd{\paramdateformat}, \cmd{\paramfieldterm}).\hspace*{0.5em}
+                  \LaTeX\ wires them to \texttt{numprint}, \texttt{isodate} and \cmd{\xspace}; \TeX\ leaves them as plain pass-throughs.
+                  See \S\ref{sec:bridges}.
+        \end{itemize}
     \end{multicols}
 
-
-    \clearpage
     \section{Usage}
     This section describes the basic commands of \texttt{lua-placeholders}.
     For more detail about type specific commands or the behavior of types with commands described here, see section~\ref{sec:spec}.\\
@@ -126,6 +154,8 @@
     \subsection{Configuration}
     \DescribeMacro{\strictparams} In order to give an error when values are missing, the \cmd{\strictparams}\footnote{The \cmd{\strictparams} command is still under development.} command can be used.
     Make sure to do it before loading any \meta{recipe} and \meta{payload} files.
+    Identical form in \TeX.
+
     \DescribeMacro{\loadrecipe}
     In order to load a recipe the macro \cmd{\loadrecipe}\oarg{namespace}\marg{filename} can be used.
     Where the \meta{filename} is a YAML file with its corresponding extension.
@@ -134,25 +164,46 @@
     \DescribeMacro{\loadpayload} The same behaviour counts for \cmd{\loadpayload}\oarg{namespace}\marg{filename}.
     The order of loading \meta{recipe} and \meta{payload} files doesn't matter.
     If the \meta{payload} file got loaded first, it will be yielded until the corresponding \meta{recipe} file is loaded.
-    When a file is loaded, a \LaTeX\ hook will trigger once for \texttt{namespace/\meta{namespace}} and once for \texttt{namespace\meta{namespace}/loaded}, respectively.
+    The hook emissions on each load are described in section~\ref{sec:engine-diff} (\LaTeX\ only).
+
+    Plain \TeX\ form: \cmd{\loadrecipe}\marg{filename} and \cmd{\loadpayload}\marg{filename} take only the filename.
+    The active namespace is whatever \cmd{\curnamespace} expands to at call time --- defaulting to \cmd{\jobname} and adjustable with \cmd{\setnamespace}.
 
     All other macros of this package also take the optional \meta{namespace}, which by default is equal to \cmd{\jobname}.
-    \DescribeMacro{\setnamespace} This default \meta{namespace} can be changed with \cmd{\setnamespace}\marg{new default namespace}.\\
+    \DescribeMacro{\setnamespace} This default \meta{namespace} can be changed with \cmd{\setnamespace}\marg{new default namespace}.
+    Identical form in \TeX.\\
 
     \subsection{Displaying Parameters}
     For displaying variables, the commands \cmd{\param} and \cmd{\PARAM} share the same interface.
     \DescribeMacro{\param} The most trivial, displaying the variable as-is, is \cmd{\param}\oarg{namespace}\marg{key}.
     \DescribeMacro{\PARAM} The \cmd{\PARAM} however, shows the value as upper case.
+    Plain \TeX\ forms: \cmd{\param}\marg{key} and \cmd{\PARAM}\marg{key} (no optional argument; namespace comes from \cmd{\curnamespace}).
 
-    In some cases, it's required to output the text without any \TeX{} related functionality.
+    In some cases, it's required to output the text without any \TeX\ related functionality.
     Another case is that some environments don't take macros with optional arguments well.
-    \DescribeMacro{\rawparam} For these cases there is \cmd{\rawparam}\marg{namespace}\marg{key}, which takes the namespace as mandatory argument, instead of optional, and doesn't output fancy \TeX{} placeholders.\\
+    \DescribeMacro{\rawparam} For these cases there is \cmd{\rawparam}\marg{namespace}\marg{key}, which takes the namespace as mandatory argument, instead of optional, and doesn't output fancy \TeX\ placeholders.
+    Plain \TeX\ form: \cmd{\rawparam}\marg{key} (single argument; namespace from \cmd{\curnamespace}).\\
 
     \DescribeMacro{\hasparam} To check whether a parameter is set, the \cmd{\hasparam}\oarg{namespace}\marg{key}\marg{true case}\marg{false case} command is used.
-    However, a more robust way is using \LaTeX{} hooks.
-    For recipes being loaded, the hook \texttt{namespace/}\meta{name} is triggered once.
-    For payloads being loaded, the hook \texttt{namespace/}\meta{name}\texttt{loaded} is triggered once.
-    For more information on \LaTeX{} hooks, read the \texttt{lthooks} manual.
+    Plain \TeX\ form: drop the optional namespace --- \cmd{\hasparam}\marg{key}\marg{true case}\marg{false case}.
+
+    \subsection{Engine bridges}\label{sec:bridges}
+    The Lua core never references package-specific commands directly; it emits the following wrappers, which the bridge file (\texttt{.sty} for \LaTeX, \texttt{.tex} for \TeX) backs with engine-appropriate behaviour.
+    Override any of them in your own preamble before the bridge is loaded if you need different formatting.
+    \begin{description}[font=\ttfamily]
+        \item[\textbackslash paramnumberformat\marg{N}]
+        Numeric values pass through here.
+        \LaTeX\ default: \cmd{\numprint}\marg{N} when \texttt{numprint} is loaded, otherwise \meta{N} as-is.
+        \TeX\ default: \meta{N} as-is.
+        \item[\textbackslash paramdateformat\marg{Y}\marg{M}\marg{D}]
+        \texttt{YYYY-MM-DD} payload scalars (parsed as a Lua date table by \texttt{lua-tinyyaml}) pass through here.
+        \LaTeX\ default: \cmd{\printdateTeX}\marg{Y/M/D} when \texttt{isodate} is loaded, otherwise \meta{Y}/\meta{M}/\meta{D} as text.
+        \TeX\ default: \meta{Y}/\meta{M}/\meta{D} as text.
+        \item[\textbackslash paramfieldterm]
+        Appended after each field binding inside the \texttt{paramobject} environment.
+        \LaTeX\ default: \cmd{\xspace}.
+        \TeX\ default: empty (the author writes \cmd{\name}\cmd{\space} or \cmd{\name}\texttt{\{\}} explicitly).
+    \end{description}
 
     \clearpage
 
@@ -160,7 +211,7 @@
     Every parameter specified has a \meta{type} set.
     Optionally there is a choice between setting a \meta{default} or a \meta{placeholder} for the parameter.
     \begin{description}
-        \item[bool] Next to the textual representation of \textit{true} and \textit{false}, it provides a \LaTeX{} command using the \texttt{ifthen} package.
+        \item[bool] Next to the textual representation of \textit{true} and \textit{false}, the bridge tracks each boolean as a \cmd{\newif}-style flag.
         Therefore, only the \meta{default} setting makes sense.\\[5pt]
         \hspace*{5pt}\parbox{\linewidth-5pt}{%
             \hfill\texttt{Recipe}\hfill\hspace*{\columnsep}%
@@ -170,36 +221,36 @@
         With a boolean type the \cmd{\param}\oarg{namespace}\marg{name} returns either \textit{true} or \textit{false}.
         \DescribeMacro{\ifparam}
         Additionally, it provides the \cmd{\ifparam}\oarg{namespace}\marg{name}\marg{true code}\marg{false code} command for top level boolean types.
-        The macro is just a wrapper for the boolean package \texttt{ifthen}, which supports spaces in names.
+        The flag is set via \cmd{\paramsetbool} and tested with \cmd{\csname if}\meta{name}\cmd{\endcsname}, which supports spaces in names without any package dependency (no \texttt{ifthen} is needed).
+        Plain \TeX\ form: \cmd{\ifparam}\marg{name}\marg{true code}\marg{false code} (no optional namespace).
         \item[string] representing a piece of text.
-        All \TeX{} related symbols in the text, like \textbackslash, \% and \#, are escaped.\\
+        Values are passed through to \TeX\ verbatim --- only embedded newlines are normalised to spaces.
+        \TeX-special characters (\texttt{\textbackslash}, \texttt{\%}, \texttt{\#}, \texttt{\&}, \texttt{\_}, \texttt{\$}, \texttt{\^{}}, \texttt{\~{}}) are \emph{not} escaped: pass an unescaped \texttt{\%} and \TeX\ will treat the rest of the value as a comment, pass a bare \texttt{\&} and you'll get a misplaced-alignment-tab error, etc.
+        Escape them in the YAML payload using their usual \LaTeX\ forms (e.g.\ \texttt{\textbackslash\%} for a literal percent, \texttt{\textbackslash\&} for an ampersand, \texttt{\textbackslash textbackslash} for a backslash).\\
         \showexample{4}{4-6}{2}{2-2}
-        \DescribeMacro{\param} A string type can easily be placed in \LaTeX{} using the \cmd{\param} command.
+        \DescribeMacro{\param} A string type can easily be placed in \LaTeX\ using the \cmd{\param} command.
 
         \paragraph{YAML date caveat.}
         When the YAML payload is parsed by \texttt{lua-tinyyaml}, scalars matching the ISO~8601 date pattern \texttt{YYYY-MM-DD} are returned as a Lua table \texttt{\{year=,~month=,~day=\}} rather than a string.
-        \texttt{lua-placeholders} detects this and renders the value through \cmd{\printdateTeX}\marg{Y/M/D}, supplied by package \texttt{isodate}\cite{isodate}.
+        \texttt{lua-placeholders} hands the three components to \cmd{\paramdateformat}\marg{Y}\marg{M}\marg{D} (see~\ref{sec:bridges}); the \LaTeX\ bridge wraps that in \cmd{\printdateTeX} from \texttt{isodate}\cite{isodate} when available, and the \TeX\ bridge prints \meta{Y}/\meta{M}/\meta{D} as text.
         The \texttt{date~example} field below illustrates this:\\
         \showexample{7}{7-9}{3}{3-3}
-        If you intend to use a date inside a \texttt{string} parameter, load \texttt{isodate} (or define your own \cmd{\printdateTeX}) in the document preamble; otherwise compilation will fail with an undefined control sequence.
-        Note also that \cmd{\rawparam} bypasses this conversion and will not produce useful output for a date-typed value.
+        Note that \cmd{\rawparam} bypasses this conversion and will not produce useful output for a date-typed value.
         The \texttt{lyaml} fallback and JSON do not perform this conversion --- the same \texttt{YYYY-MM-DD} payload is delivered as a plain string instead.
         \item[number] representing a number, like the number type of Lua.
-        In most cases it's necessary to use \meta{default} instead of \meta{placeholder}, especially when the number is used in calculations, since a placeholder will cause errors in \LaTeX{} calculations.\\
+        In most cases it's necessary to use \meta{default} instead of \meta{placeholder}, especially when the number is used in calculations, since a placeholder will cause errors in \LaTeX\ calculations.\\
         \showexample{10}{10-12}{4}{4-4}
         \DescribeMacro{\param}
         A number type can be used with \cmd{\param}, just like the string type.
-        In version 1.0.0 there was a special command \cmd{\numparam}, which is now deprecated as it now is the default implementation for number types using \cmd{\param}.
-        When \cmd{\numprint} is defined, it will use it for display using \cmd{\param}.
-        When \cmd{\numprint} isn't defined, it will print a warning message and formats the number as is.
-        The same behavior counts for number types within a \texttt{list}, \texttt{object} or \texttt{table}.
-        Read the documentation of package \texttt{numprint} for more information.
+        In the 1.x.x series there was a special command \cmd{\numparam}, which is now deprecated as it is the default implementation for number types using \cmd{\param}.
+        Numeric values pass through \cmd{\paramnumberformat} (see~\ref{sec:bridges}); the \LaTeX\ bridge wraps in \cmd{\numprint} from \texttt{numprint}\cite{numprint} when loaded, the \TeX\ bridge prints the value as-is.
+        The same behaviour applies to number values inside a \texttt{list}, \texttt{object} or \texttt{table}.
         If you need a nonformatted version of the number, use \cmd{\rawparam} instead.
         \item[list] representing a list of values.
-        The value type is specified by \meta{value type}.
+        The simplest form sets the item shape with \meta{item type} (one of \texttt{string}, \texttt{number}, \texttt{bool}).
+        For nested complex item types, use the long form \meta{item}: a full nested parameter spec, e.g.\ \texttt{item: \{type: object, fields: \dots\}} or \texttt{item: \{type: table, columns: \dots\}}.
         A \meta{default} setting can be set.
-        Due to its structure, a \meta{placeholder} would be somewhat incompatible with the corresponding macros.
-        However, a placeholder can be simulated by setting the placeholders as children of the \meta{default} list, as demonstrated in the example.\\
+        Due to its structure, a \meta{placeholder} would be somewhat incompatible with the corresponding macros; instead, set placeholder content as children of the \meta{default} list.\\
         \showexample{13}{13-18}{5}{5-7}
         \DescribeMacro{\param}
         Command \cmd{\param} concatenates every item with command \cmd{\paramlistconjunction}.
@@ -208,38 +259,42 @@
 
         \DescribeMacro{\forlistitem}
         There's also the \cmd{\forlistitem}\oarg{namespace}\marg{name}\marg{csname} command, which takes an additional \meta{csname} and will execute it for every item in the list.
-        This command doesn't handle advanced features like altering the conjunction.
-        Though, some utility commands will be set, which are only available in the \meta{csname}s implementation, in order to achieve the same goal.
+        For primitive item types the \meta{csname} is invoked with the value as its single argument.
+        For complex item types (\texttt{object}, \texttt{list}, \texttt{table}) each item is pushed onto the lookup context: object items expose every field as a direct \cmd{\<fieldname>} macro, while list/table items are bound under the synthetic key \texttt{self} so the row macro can drill in with \cmd{\fortablerow}\marg{self}\marg{...} or \cmd{\forlistitem}\marg{self}\marg{...}.
+        Plain \TeX\ form: \cmd{\forlistitem}\marg{name}\marg{csname} (no optional namespace).
         \item[object] representing a list of key value pairs.
         This parameter type requires a \meta{fields} specification to be set.
-        Any field must be of type \texttt{bool}, \texttt{number} or \texttt{string}.\\
+        Each field is itself a parameter spec, so \texttt{bool}, \texttt{number}, \texttt{string} as well as nested \texttt{list}, \texttt{object} and \texttt{table} types are all permitted.\\
         \showexample{19}{19-30}{8}{8-11}
         There is no support for the \cmd{\param} command.
         \DescribeMacro{\paramfield}
         In order to show to contents there is the \cmd{\paramfield}\oarg{namespace}\marg{name}\marg{field} command.
         However, unlike the common command \cmd{\param}, the command \cmd{\hasparam} does work with object types.
+        Plain \TeX\ form: \cmd{\paramfield}\marg{name}\marg{field}.
 
-        \DescribeEnv{paramobject} There's also the \texttt{paramobject} environment, which takes an optional \meta{namespace} and takes the \meta{name} of the object as arguments and then defines for every field name a corresponding command.
-        Every command is appended with the \cmd{\xspace} command to prevent gobbling a space.
-        In other words, the author doesn't have to end the command with accolades `\{\}' to get the expected output.
+        \DescribeEnv{paramobject} There's also the \texttt{paramobject} environment, which takes an optional \meta{namespace} and the \meta{name} of the object as arguments and then defines for every primitive field name a corresponding command.
+        Each binding is appended with \cmd{\paramfieldterm} (\cmd{\xspace} under \LaTeX, empty under \TeX) so the author doesn't have to end the command with accolades `\{\}' to get the expected output.
+        Complex (list, object, table) sub-fields are not flattened to a macro; they remain reachable inside the environment via \cmd{\forlistitem}\marg{field}\marg{...}, \cmd{\paramfield}\marg{field}\marg{...} (for nested objects), \cmd{\fortablerow}\marg{field}\marg{...}, etc.\\
+        Plain \TeX\ form: \cmd{\paramobject}\marg{name}~\dots~\cmd{\endparamobject} (a macro pair instead of a \cmd{\begin}/\cmd{\end} environment).
 
         \item[table] representing a table.
         This parameter type requires a \meta{columns} specification to be set.
         The \meta{columns} describes each column by name with its own type specification.
-        Like the object field, only the types \texttt{bool}, \texttt{number} and \texttt{string} are supported column types.\\
+        Each column may be of any type --- \texttt{bool}, \texttt{number}, \texttt{string}, or a nested \texttt{list}, \texttt{object} or \texttt{table} --- and is reached from the row macro via the corresponding type-specific command (\cmd{\paramfield}, \cmd{\forlistitem}, nested \cmd{\fortablerow}).\\
         \showexample[20pt]{31}{31-39}{12}{12-16}
         \DescribeMacro{\fortablerow}
-        Like the object, the table has no support for \cmd{\param}, but comes with a table specific command \cmd{\fortablerow}\oarg{namespace}\marg{name}\marg{csname}.
+        Like the object, the table has no support for \cmd{\param}, but comes with a table-specific command \cmd{\fortablerow}\oarg{namespace}\marg{name}\marg{csname}.
         The control sequence name \meta{csname} is a user-defined command with no arguments, containing any of the column names in a command form.
         For example, the name \texttt{example} would be accessible as \cmd{\example} in the user-defined command body.
         Cells do not require braces; the column macros expand naturally inside \TeX, so \texttt{\textbackslash example} works the same way as \texttt{\textbackslash example\{\}}.
+        Plain \TeX\ form: \cmd{\fortablerow}\marg{name}\marg{csname} (no optional namespace).
 
-        Internally, \cmd{\fortablerow} maintains a stack of in-progress iterations and rebinds every column to a global control sequence (\cmd{\token.set\_macro}) just before each invocation of \meta{csname}.
-        Because the column macros are real \TeX{} control sequences --- not string substitutions --- prefix collisions between column names (e.g.\ a column \texttt{item} alongside \texttt{item\_name}) are no longer a concern, and unreferenced columns in \meta{csname} are silently dropped instead of leaking partial substitutions.
+        Internally, \cmd{\fortablerow} pushes a frame onto a context stack shared with \texttt{paramobject} and \cmd{\forlistitem}, then rebinds every primitive column to a global control sequence via \texttt{token.set\_macro} just before each invocation of \meta{csname}.
+        Because the column macros are real \TeX\ control sequences --- not string substitutions --- prefix collisions between column names (e.g.\ a column \texttt{item} alongside \texttt{item\_name}) are no longer a concern, and unreferenced columns in \meta{csname} are silently dropped instead of leaking partial substitutions.
 
         \paragraph{Underscore in a column name.}
         \cmd{\token.set\_macro} is catcode-agnostic, so it can define a control sequence \cmd{\item\_name} regardless of the catcode of \texttt{\_} at the time \cmd{\fortablerow} runs.
-        \emph{Using} that control sequence in \meta{csname}, however, requires \texttt{\_} to have letter catcode (\texttt{11}) when the row macro is parsed --- otherwise \TeX{} reads \cmd{\item\_name} as \cmd{\item} followed by the subscript token \texttt{\_} and the letters \texttt{name}.
+        \emph{Using} that control sequence in \meta{csname}, however, requires \texttt{\_} to have letter catcode (\texttt{11}) when the row macro is parsed --- otherwise \TeX\ reads \cmd{\item\_name} as \cmd{\item} followed by the subscript token \texttt{\_} and the letters \texttt{name}.
         The standard idiom is to wrap the row macro definition in \cmd{\ExplSyntaxOn}~\dots\cmd{\ExplSyntaxOff}, which temporarily flips \texttt{\_} (and \texttt{:}) to letter catcode for the parser:
         \begin{verbatim}
 \ExplSyntaxOn
