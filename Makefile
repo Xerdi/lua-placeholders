@@ -69,6 +69,7 @@ $(TEST_BUILD_DIR)/example.txt: $(TEST_BUILD_DIR)/example.pdf
 	sed -E \
 	    -e 's|version [^ ]+ written on [0-9]{4}[-/][0-9]{2}[-/][0-9]{2}|version <VERSION> written on <DATE>|' \
 	    -e 's|^[[:space:]]+[A-Z][a-z]+ [0-9]{1,2}, [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
+	    -e 's|^[[:space:]]+[0-9]{1,2}(st\|nd\|rd\|th) [A-Z][a-z]+ [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
 	    -e 's|^[[:space:]]+[0-9]{1,2} [a-z]+ [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
 	    -e 's|^([[:space:]]+).+\xe2\x8c\xa9.+\xe2\x8c\xaa[[:space:]]*$$|\1<AUTHOR>|' \
 	    $@.raw > $@

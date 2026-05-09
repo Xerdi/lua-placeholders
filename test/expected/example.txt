@@ -1,6 +1,6 @@
                    Lua [placeholders] Example∗
                           <AUTHOR>
-                                        9th May 2026
+                                  <DATE>
 
 
 
