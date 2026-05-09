@@ -270,12 +270,17 @@ end
 
 -- Synthesise a single placeholder row from a column spec when there is no
 -- payload to iterate over.  Each cell exposes a :val() method matching the
--- shape produced by base_param:load(), so bind_ctx can treat it the same as
--- a real row.
+-- shape produced by base_param:load(), so bind_ctx can treat it the same
+-- as a real row.  Complex-typed columns are returned as the column itself
+-- (which is a real list_param/object_param/table_param) so that the user's
+-- row macro can still call \forlistitem / \paramfield / \fortablerow on
+-- them and reach a real param --- iteration just produces an empty body.
 local function placeholder_row(columns)
     local row = {}
     for col_key, col in pairs(columns) do
-        if col.default ~= nil then
+        if col.type == 'list' or col.type == 'object' or col.type == 'table' then
+            row[col_key] = col
+        elseif col.default ~= nil then
             -- Reuse the column's own :val() (handles \numprint, etc.)
             row[col_key] = col
         else

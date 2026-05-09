@@ -1,0 +1,14 @@
+%% complex-empty.tex -- Same body as complex.tex but only the recipe is
+%% loaded.  Verifies that a document compiles cleanly when no payload is
+%% supplied: every cell, including those whose declared type is itself
+%% complex (list, object, table), falls back to its placeholder or to an
+%% empty iteration without raising an error.
+\documentclass{article}
+\usepackage{lua-placeholders}
+\usepackage[autolanguage]{numprint}
+
+\loadrecipe[\jobname]{complex-spec.yaml}
+
+\begin{document}
+    \input{complex-body.tex}
+\end{document}

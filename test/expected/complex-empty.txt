@@ -1,0 +1,35 @@
+1. list[object[table]] — companies
+[Company]
+ Name           Role
+ [Employee]     [Role]
+
+2. list[table[object]] — sites
+ Key       Contact          Email
+ [Key]     [Contact name]   [Contact email]
+
+
+3. object[list[table]] — projects.sprints
+Project: [Title]
+ Task       Hours
+ [Task]    [Hours]
+
+
+4. object[table[list]] — catalog.products with
+tags
+Catalog: [Catalog]
+ SKU Tags
+ [SKU] • [tag-a] • [tag-b]
+
+5. table[object[list]] — matrix with profile.skills
+ Title       Profile
+ [Title]     [Owner]: • [skill-a] • [skill-b]
+
+6. table[list[object]] — ledger.transactions
+ Account      Transactions
+ [Account]    ([Description], [Amount])
+
+
+
+
+                                   1
+

@@ -1,3 +1,9 @@
+# Defaults note: tables synthesise a placeholder row from their columns
+# when no payload is loaded, so they don't need a top-level `default:`.
+# Lists do --- without a `default:`, \forlistitem on an unloaded list
+# iterates zero times.  Each list below carries one minimal default item
+# so the empty-payload render shows at least one row per section.
+
 # 1. list -> object -> table
 companies:
   type: list
@@ -16,6 +22,8 @@ companies:
           role:
             type: string
             placeholder: Role
+  default:
+    - employees: []   # company field unset -> [Company] placeholder
 
 # 2. list -> table -> object
 sites:
@@ -35,6 +43,8 @@ sites:
           email:
             type: string
             placeholder: Contact email
+  default:
+    - []              # one default site = empty table -> placeholder row
 
 # 3. object -> list -> table
 projects:
@@ -54,6 +64,8 @@ projects:
           hours:
             type: number
             placeholder: Hours
+      default:
+        - []          # one default sprint = empty task table
 
 # 4. object -> table -> list
 catalog:
@@ -71,6 +83,9 @@ catalog:
         tags:
           type: list
           item type: string
+          default:
+            - tag-a
+            - tag-b
 
 # 5. table -> object -> list
 matrix:
@@ -88,6 +103,9 @@ matrix:
         skills:
           type: list
           item type: string
+          default:
+            - skill-a
+            - skill-b
 
 # 6. table -> list -> object
 ledger:
@@ -107,3 +125,5 @@ ledger:
           amount:
             type: number
             placeholder: Amount
+      default:
+        - {}          # one default transaction, all fields unset
