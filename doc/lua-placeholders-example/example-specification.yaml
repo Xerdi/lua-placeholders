@@ -4,6 +4,9 @@ bool example:
 string example:
   type: string
   placeholder: A string
+date example:
+  type: string
+  placeholder: A date
 number example:
   type: number
   default: -1.21

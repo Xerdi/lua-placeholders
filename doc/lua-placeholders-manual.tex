@@ -175,9 +175,18 @@
         All \TeX{} related symbols in the text, like \textbackslash, \% and \#, are escaped.\\
         \showexample{4}{4-6}{2}{2-2}
         \DescribeMacro{\param} A string type can easily be placed in \LaTeX{} using the \cmd{\param} command.
+
+        \paragraph{YAML date caveat.}
+        When the YAML payload is parsed by \texttt{lua-tinyyaml}, scalars matching the ISO~8601 date pattern \texttt{YYYY-MM-DD} are returned as a Lua table \texttt{\{year=,~month=,~day=\}} rather than a string.
+        \texttt{lua-placeholders} detects this and renders the value through \cmd{\printdateTeX}\marg{Y/M/D}, supplied by package \texttt{isodate}\cite{isodate}.
+        The \texttt{date~example} field below illustrates this:\\
+        \showexample{7}{7-9}{3}{3-3}
+        If you intend to use a date inside a \texttt{string} parameter, load \texttt{isodate} (or define your own \cmd{\printdateTeX}) in the document preamble; otherwise compilation will fail with an undefined control sequence.
+        Note also that \cmd{\rawparam} bypasses this conversion and will not produce useful output for a date-typed value.
+        The \texttt{lyaml} fallback and JSON do not perform this conversion --- the same \texttt{YYYY-MM-DD} payload is delivered as a plain string instead.
         \item[number] representing a number, like the number type of Lua.
         In most cases it's necessary to use \meta{default} instead of \meta{placeholder}, especially when the number is used in calculations, since a placeholder will cause errors in \LaTeX{} calculations.\\
-        \showexample{7}{7-9}{3}{3-3}
+        \showexample{10}{10-12}{4}{4-4}
         \DescribeMacro{\param}
         A number type can be used with \cmd{\param}, just like the string type.
         In version 1.0.0 there was a special command \cmd{\numparam}, which is now deprecated as it now is the default implementation for number types using \cmd{\param}.
@@ -191,7 +200,7 @@
         A \meta{default} setting can be set.
         Due to its structure, a \meta{placeholder} would be somewhat incompatible with the corresponding macros.
         However, a placeholder can be simulated by setting the placeholders as children of the \meta{default} list, as demonstrated in the example.\\
-        \showexample{10}{10-15}{4}{4-6}
+        \showexample{13}{13-18}{5}{5-7}
         \DescribeMacro{\param}
         Command \cmd{\param} concatenates every item with command \cmd{\paramlistconjunction}.
         \DescribeMacro{\paramlistconjunction}
@@ -204,7 +213,7 @@
         \item[object] representing a list of key value pairs.
         This parameter type requires a \meta{fields} specification to be set.
         Any field must be of type \texttt{bool}, \texttt{number} or \texttt{string}.\\
-        \showexample{16}{16-27}{7}{7-10}
+        \showexample{19}{19-30}{8}{8-11}
         There is no support for the \cmd{\param} command.
         \DescribeMacro{\paramfield}
         In order to show to contents there is the \cmd{\paramfield}\oarg{namespace}\marg{name}\marg{field} command.
@@ -218,7 +227,7 @@
         This parameter type requires a \meta{columns} specification to be set.
         The \meta{columns} describes each column by name with its own type specification.
         Like the object field, only the types \texttt{bool}, \texttt{number} and \texttt{string} are supported column types.\\
-        \showexample[20pt]{28}{28-36}{11}{11-15}
+        \showexample[20pt]{31}{31-39}{12}{12-16}
         \DescribeMacro{\fortablerow}
         Like the object, the table has no support for \cmd{\param}, but comes with a table specific command \cmd{\fortablerow}\oarg{namespace}\marg{name}\marg{csname}.
         The control sequence name \meta{csname} is a user-defined command with no arguments, containing any of the column names in a command form.

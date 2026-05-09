@@ -1,6 +1,6 @@
                    Lua [placeholders] Example∗
                           <AUTHOR>
-                                  <DATE>
+                                        9th May 2026
 
 
 
@@ -25,14 +25,15 @@ String example:
 
 \param{string example}       =⇒ “[A string]”
 
+Date example (a string whose payload value matches YYYY-MM-DD):
+
+\param{date example}       =⇒ [A date]
+
 Number example:
 
 \rawparam{\jobname}{number example}            =⇒ -1.21
 
 \param{number example}       =⇒ \numprint{-1.21} =⇒ −1.21
-
-
-
 
   ∗ This example corresponds to lua-placeholders version <VERSION> written on <DATE>.
 
@@ -94,13 +95,19 @@ Table example:
 After values loaded
 Boolean example:
 
-\param{bool example}    =⇒ true
+\param{bool example}   =⇒ true
 
 \ifparam{bool example}{TRUE}{FALSE}     =⇒ TRUE
 
 String example:
 
 \param{string example}   =⇒ “PeelInc.”
+
+Date example:
+
+\rawparam{\jobname}{date example}    =⇒
+
+\param{date example}   =⇒ 2nd April 2024
 
 Number example:
 
@@ -115,7 +122,7 @@ Number in foreign language:
 
 List example:
 
-\param{list example}    =⇒ Tomatoes, Potatoes
+\param{list example}   =⇒ Tomatoes, Potatoes
 
 \begin{enumerate}
   \newcommand\formatitem[1]{\item #1}
@@ -125,21 +132,20 @@ List example:
 =⇒
    1. Tomatoes
    2. Potatoes
-
 Object example:
 
 \paramfield{object example}{name}
 \paramfield{object example}{email}
-\paramfield{object example}{grade}
-=⇒ John Doe j.doe@example.com 9.5
-
-\newcommand\name{...}
-\begin{paramobject}{object example}
 
 
 
                                            3
-     \name \email \grade
+\paramfield{object example}{grade}
+=⇒ John Doe j.doe@example.com 9.5
+
+\newcommand\name{...}
+\begin{paramobject}{object example}
+     \name \email \grade
 \end{paramobject}
 % And here it works again
 \name
@@ -161,71 +167,72 @@ Table example:
           Peeling potatoes    25.00
 
 Payload File
-
                                    Listing 1: example.yaml
  1 bool example: true
  2 string example: PeelInc.
- 3 number example: 1.21
- 4 list example:
- 5      - Tomatoes
- 6      - Potatoes
- 7 object example:
- 8      name: John Doe
- 9      email: j.doe@example.com
-10      grade: 9.5
-11 table example:
-12      - description: Peeling tomatoes
-13       price: 50
-14      - description: Peeling potatoes
-15       price: 25
+ 3 date example: 2024-04-02
+ 4 number example: 1.21
+ 5 list example:
+ 6      - Tomatoes
+ 7      - Potatoes
+ 8 object example:
+ 9      name: John Doe
+10      email: j.doe@example.com
+11      grade: 9.5
+12 table example:
+13      - description: Peeling tomatoes
+14       price: 50
+15      - description: Peeling potatoes
+16       price: 25
 
 
 Specification File
 
-                           Listing 2: example-specification.yaml
- 1 bool example:
- 2      type: bool
- 3      default: false
- 4 string example:
-
-
 
                                               4
-5    type: string
+                         Listing 2: example-specification.yaml
+1 bool example:
+2    type: bool
+3    default: false
+4 string example:
+5    type: string
 6    placeholder: A string
-7 number example:
-8    type: number
-9    default: -1.21
-10 list example:
-11   type: list
-12   item type: string
-13   default:
-14    - A string
-15    - A second string
-16 object example:
-17   type: object
-18   fields:
-19    name:
-20     type: string
-21     placeholder: Your name
-22    email:
+7 date example:
+8    type: string
+9    placeholder: A date
+10 number example:
+11   type: number
+12   default: -1.21
+13 list example:
+14   type: list
+15   item type: string
+16   default:
+17    - A string
+18    - A second string
+19 object example:
+20   type: object
+21   fields:
+22    name:
 23     type: string
-24     placeholder: Your email
-25    grade:
-26     type: number
-27     default: 5.5
-28 table example:
-29   type: table
-30   columns:
-31    description:
-32     type: string
-33     placeholder: The description
-34    price:
-35     type: number
-36     placeholder: The price
+24     placeholder: Your name
+25    email:
+26     type: string
+27     placeholder: Your email
+28    grade:
+29     type: number
+30     default: 5.5
+31 table example:
+32   type: table
+33   columns:
+34    description:
+35     type: string
+36     placeholder: The description
+37    price:
+38     type: number
+39     placeholder: The price
 
 
 
 
-                                      5
+                                          5
 

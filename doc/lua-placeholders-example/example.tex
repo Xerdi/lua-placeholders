@@ -25,6 +25,7 @@
 \usepackage{calc}
 \usepackage[dutch,english]{babel}
 \usepackage[autolanguage]{numprint}
+\usepackage[english]{isodate}
 
 \loadrecipe[\jobname]{example-specification.yaml}
 
@@ -65,6 +66,12 @@
     \lstinline[style=TeX,morekeywords={param}]|\param{string example}|
     $\implies$
     ``\param{string example}''\\
+
+    Date example (a string whose payload value matches \texttt{YYYY-MM-DD}):\\
+
+    \lstinline[style=TeX,morekeywords={param}]|\param{date example}|
+    $\implies$
+    \param{date example}\\
 
     Number example:\\
 
@@ -170,6 +177,16 @@
     \lstinline[style=TeX,morekeywords={param}]|\param{string example}|
     $\implies$
     ``\param{string example}''\\
+
+    Date example:\\
+
+    \lstinline[style=TeX,morekeywords={rawparam}]|\rawparam{\jobname}{date example}|
+    $\implies$
+    \rawparam{\jobname}{date example}\\
+
+    \lstinline[style=TeX,morekeywords={param}]|\param{date example}|
+    $\implies$
+    \param{date example}\\
 
     Number example:\\
 
