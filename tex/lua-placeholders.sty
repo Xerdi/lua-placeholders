@@ -21,8 +21,6 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{lua-placeholders}[2024/04/02 1.0.3 Lua Placeholders Package]
 
-\RequirePackage{ifthen}
-%\RequirePackage{luapackageloader}
 \RequirePackage{textcomp}
 \RequirePackage{xspace}
 
@@ -31,6 +29,45 @@
 \newcommand\paramnotfound[1]{\paramplaceholder{{\textnormal{\textlangle unknown\textrangle}} #1}}
 \newcommand\paramlistconjunction{,~}
 
+% --- Engine/format hooks the Lua core defers to ----------------------------
+% The Lua side never references package-specific commands directly: it emits
+% these wrappers and the .sty (or the plain-LuaTeX .tex) decides what they
+% mean.  Each is \providecommand so a user can override before \usepackage.
+%
+% \paramnumberformat{N}     -- format a numeric value
+% \paramdateformat{Y}{M}{D} -- format a YYYY-MM-DD date scalar
+% \paramfieldterm           -- token appended after each \paramobject field
+%                              binding (so \name without {} doesn't gobble
+%                              the next space)
+\providecommand\paramnumberformat[1]{%
+    \@ifundefined{numprint}{#1}{\numprint{#1}}%
+}
+\providecommand\paramdateformat[3]{%
+    \@ifundefined{printdateTeX}{#1/#2/#3}{\printdateTeX{#1/#2/#3}}%
+}
+\providecommand\paramfieldterm{\xspace}
+
+% --- Boolean flag bridge ----------------------------------------------------
+% Lua emits \paramnewbool{key} when a bool-typed parameter is declared, and
+% \paramsetbool{key}{true|false} when its value is loaded.  We avoid \newif
+% because its internal \@if / \if@ machinery only works for literal CS names
+% (it breaks when the CS is built via \csname in a context where @ isn't a
+% letter --- i.e. plain LuaTeX).  Instead we just \let the if-token directly
+% to \iftrue or \iffalse, which works identically in plain TeX and LaTeX,
+% supports keys with spaces, and has no package dependency.
+\providecommand\paramnewbool[1]{%
+    \expandafter\ifx\csname if#1\endcsname\relax
+        \expandafter\let\csname if#1\endcsname=\iffalse
+    \fi%
+}
+% Dispatch \paramsetbool{key}{true|false} to a per-value helper.  Putting
+% \iftrue/\iffalse inside an \if-conditional branch trips TeX's skip scanner
+% (which counts every \if* token as a nested conditional, even when it's an
+% argument to \let), so we keep them at the top level of the helper bodies.
+\providecommand\paramsetbool[2]{\csname paramsetbool#2\endcsname{#1}}
+\providecommand\paramsetbooltrue[1]{\expandafter\let\csname if#1\endcsname=\iftrue}
+\providecommand\paramsetboolfalse[1]{\expandafter\let\csname if#1\endcsname=\iffalse}
+
 \directlua{lua_placeholders = require('lua-placeholders')}
 
 \newcommand\setnamespace[1]{\renewcommand\curnamespace{#1}}
@@ -38,14 +75,14 @@
 \newcommand%! suppress = NonMatchingIf
 \ifparam[4][\curnamespace]{%
     \directlua{local p = lua_placeholders.param_object('#2','#1') if p then p:set_bool('#2') end}%
-    \ifthenelse{\boolean{#2}}{#3}{#4}}
+    \csname if#2\endcsname #3\else #4\fi}
 \newcommand\param[2][\curnamespace]{\directlua{lua_placeholders.param('#2', '#1')}}
 \newcommand\PARAM[2][\curnamespace]{\directlua{local p = lua_placeholders.param_object('#2', '#1') if p then tex.print(p:to_upper()) end}}
 \def\rawparam#1#2{\directlua{local p = lua_placeholders.param_object('#2', '#1') if p then tex.print(p:raw_val() or p.default or p.placeholder) end}}
 \newcommand\numparam[2][\curnamespace]{\directlua{local n = lua_placeholders.param_object('#2', '#1') if n then n:print_num() end}}
 \newcommand\hasparam[4][\curnamespace]{%
-    \def\has@param@true{#3}%
-    \def\has@param@false{#4}%
+    \def\paramhastrue{#3}%
+    \def\paramhasfalse{#4}%
     \directlua{lua_placeholders.handle_param_is_set('#2', '#1')}}
 \newcommand\paramfield[3][\curnamespace]{\directlua{lua_placeholders.field('#2','#3', '#1')}}
 \newenvironment{paramobject}[2][\curnamespace]{\directlua{lua_placeholders.with_object('#2', '#1')}}{\directlua{lua_placeholders.exit_object()}}

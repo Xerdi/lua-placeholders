@@ -116,7 +116,11 @@ function str_param:val()
     local value = self:raw_val()
     if value then
         if type(value) == 'table' and type(value.year) == 'number' then
-          value = '\\printdateTeX{' .. value.year .. '/' .. value.month .. '/' .. value.day .. '}'
+            -- tinyyaml turns YYYY-MM-DD scalars into a Lua date table.  Hand
+            -- the three components to a TeX-side wrapper so the engine/format
+            -- decides how to render (LaTeX side uses \printdateTeX from
+            -- isodate; plain LuaTeX falls back to Y/M/D text).
+            value = '\\paramdateformat{' .. value.year .. '}{' .. value.month .. '}{' .. value.day .. '}'
         end
         local formatted, _ = string.gsub(value, '\n', ' ')
         return formatted
@@ -147,12 +151,9 @@ end
 function number_param:val()
     local val = self:raw_val()
     if val ~= nil then
-        if token.is_defined('numprint') then
-            return '\\numprint{' .. val .. '}'
-        else
-            texio.write_nl([[Warning: package 'numprint' not loaded. Outputting numbers as is.]])
-            return val
-        end
+        -- Hand the raw value to a TeX-side formatter.  LaTeX side wraps it
+        -- in \numprint when numprint is loaded; plain LuaTeX prints as-is.
+        return '\\paramnumberformat{' .. tostring(val) .. '}'
     end
 end
 

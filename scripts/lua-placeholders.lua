@@ -34,10 +34,6 @@ local api = {
     namespaces = {},
     parameters = {},
     strict = false,
-    toks = {
-        is_set_true = token.create('has@param@true'),
-        is_set_false = token.create('has@param@false'),
-    }
 }
 
 -- Stack of active lookup contexts.  A frame is pushed by anything that wants
@@ -171,9 +167,9 @@ end
 function api.handle_param_is_set(key, namespace)
     local param = get_param(key, namespace)
     if param and param:is_set() then
-        tex.sprint(token.create('has@param@true'))
+        tex.sprint(token.create('paramhastrue'))
     else
-        tex.sprint(token.create('has@param@false'))
+        tex.sprint(token.create('paramhasfalse'))
     end
 end
 
@@ -207,13 +203,16 @@ function api.with_object(object_key, namespace)
     -- env's TeX group handles cleanup naturally — \name reverts to its
     -- previous meaning after \end{paramobject}).  Complex fields are reachable
     -- via the type-specific commands once they hit get_param.
+    -- The trailing \paramfieldterm is a TeX-side hook: \xspace under LaTeX
+    -- (so authors can write \name without {} and not gobble the space),
+    -- empty under plain LuaTeX where xspace isn't loaded.
     for key, param in pairs(object.fields) do
         if param.type ~= 'list' and param.type ~= 'object' and param.type ~= 'table' then
             local val = param:val()
             if val ~= nil then
-                token.set_macro(key, val .. '\\xspace')
+                token.set_macro(key, val .. '\\paramfieldterm')
             else
-                token.set_macro(key, '\\paramplaceholder{' .. (param.placeholder or key) .. '}\\xspace')
+                token.set_macro(key, '\\paramplaceholder{' .. (param.placeholder or key) .. '}\\paramfieldterm')
             end
         end
     end

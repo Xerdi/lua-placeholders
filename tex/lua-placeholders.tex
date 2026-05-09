@@ -1,0 +1,75 @@
+%% lua-placeholders.tex -- Plain LuaTeX support for lua-placeholders.
+%%
+%% Defines the engine bridge macros the Lua core defers to, plus user-facing
+%% commands that mirror the LaTeX side without requiring \newcommand,
+%% \newenvironment, or any LaTeX2e package.  Load with:
+%%
+%%     \input lua-placeholders
+%%
+%% from a plain LuaTeX document.  All macros take mandatory arguments;
+%% switch the active namespace with \setnamespace{name} before \param /
+%% \forlistitem / etc.
+
+% --- Defaults and bridges the Lua core renders into ------------------------
+\def\curnamespace{\jobname}
+\def\paramplaceholder#1{[#1]}
+\def\paramnotfound#1{[<unknown> #1]}
+\def\paramlistconjunction{, }
+
+% --- Engine-specific hotfix wrappers (mirror tex/lua-placeholders.sty)
+% The .sty wires these to numprint / isodate / xspace; here we keep them
+% minimal -- a power user can override before \input.
+\def\paramnumberformat#1{#1}
+\def\paramdateformat#1#2#3{#1/#2/#3}
+\def\paramfieldterm{}
+
+% --- Boolean flag bridge: \let the if-token directly to \iftrue/\iffalse.
+% \newif's internal \@if/\if@ machinery requires literal CS names and breaks
+% when called with \expandafter\newif\csname if#1\endcsname, especially in
+% plain LuaTeX where @ is "other" at user time.  The simpler \let approach
+% works identically in plain TeX and LaTeX, supports keys with spaces, and
+% has no package dependency.
+\def\paramnewbool#1{%
+    \expandafter\ifx\csname if#1\endcsname\relax
+        \expandafter\let\csname if#1\endcsname=\iffalse
+    \fi}
+\def\paramsetbool#1#2{\csname paramsetbool#2\endcsname{#1}}
+\def\paramsetbooltrue#1{\expandafter\let\csname if#1\endcsname=\iftrue}
+\def\paramsetboolfalse#1{\expandafter\let\csname if#1\endcsname=\iffalse}
+
+% --- User-callable macros ---------------------------------------------------
+% No optional arguments (plain TeX has no \newcommand).  Set the default
+% namespace via \setnamespace; per-call namespace can be passed by
+% temporarily re-\def-ing \curnamespace inside a group.
+\def\setnamespace#1{\def\curnamespace{#1}}
+\def\strictparams{\directlua{lua_placeholders.set_strict()}}
+
+\def\loadrecipe#1{\directlua{lua_placeholders.recipe('#1', '\curnamespace')}}
+\def\loadpayload#1{\directlua{lua_placeholders.payload('#1', '\curnamespace')}}
+
+\def\param#1{\directlua{lua_placeholders.param('#1', '\curnamespace')}}
+\def\PARAM#1{\directlua{local p = lua_placeholders.param_object('#1', '\curnamespace') if p then tex.print(p:to_upper()) end}}
+\def\rawparam#1{\directlua{local p = lua_placeholders.param_object('#1', '\curnamespace') if p then tex.print(p:raw_val() or p.default or p.placeholder) end}}
+
+\def\hasparam#1#2#3{%
+    \def\paramhastrue{#2}%
+    \def\paramhasfalse{#3}%
+    \directlua{lua_placeholders.handle_param_is_set('#1', '\curnamespace')}}
+
+\def\ifparam#1#2#3{%
+    \directlua{local p = lua_placeholders.param_object('#1','\curnamespace') if p then p:set_bool('#1') end}%
+    \csname if#1\endcsname #2\else #3\fi}
+
+\def\paramfield#1#2{\directlua{lua_placeholders.field('#1','#2','\curnamespace')}}
+
+% paramobject: plain TeX has no \newenvironment, so the user wraps content
+% with \paramobject{key}...\endparamobject (matching \begin / \end shape).
+\def\paramobject#1{\directlua{lua_placeholders.with_object('#1','\curnamespace')}}
+\def\endparamobject{\directlua{lua_placeholders.exit_object()}}
+
+\def\forlistitem#1#2{\directlua{lua_placeholders.for_item('#1','\curnamespace','#2')}}
+\def\fortablerow#1#2{\directlua{lua_placeholders.with_rows('#1','\curnamespace','#2')}}
+
+% --- Load the Lua core ------------------------------------------------------
+\directlua{lua_placeholders = require('lua-placeholders')}
+\endinput

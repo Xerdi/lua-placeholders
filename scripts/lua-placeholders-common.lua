@@ -27,8 +27,11 @@ function table.copy(t)
 end
 
 lua_placeholders_toks = {
-    new_bool = token.create('provideboolean'),
-    set_bool = token.create('setboolean'),
+    -- Booleans are bridged through engine-agnostic wrappers so that the
+    -- LaTeX side can use \newif-based flags (no ifthen dependency) and the
+    -- plain-LuaTeX side can do the same with the same call shape.
+    new_bool = token.create('paramnewbool'),
+    set_bool = token.create('paramsetbool'),
     list_conj = token.create('paramlistconjunction'),
     placeholder_format = token.create('paramplaceholder'),
     unknown_format = token.create('paramnotfound')

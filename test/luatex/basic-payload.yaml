@@ -1,0 +1,10 @@
+greeting: Howdy from plain Lua\TeX
+count: 42
+active: true
+tags:
+  - alpha
+  - beta
+  - gamma
+user:
+  name: Ada
+  email: ada@example.org

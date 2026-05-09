@@ -53,7 +53,7 @@ $(CONTRIBUTION): doc/lua-placeholders-manual.pdf clean
 		--exclude=doc/.latexmkrc \
 		-czvf $(CONTRIBUTION) ./README.md ./doc ./scripts ./tex
 
-test: test-example test-tables test-lists test-objects test-complex test-complex-empty
+test: test-example test-tables test-lists test-objects test-complex test-complex-empty test-luatex
 
 # ---------------------------------------------------------------------------
 # Per-type case tests live under test/cases/<name>.tex (with sibling
@@ -135,6 +135,38 @@ $(eval $(call CASE_template,lists))
 $(eval $(call CASE_template,objects))
 $(eval $(call CASE_template,complex))
 $(eval $(call CASE_template,complex-empty))
+
+# ---------------------------------------------------------------------------
+# Plain LuaTeX target.  Compiled with `luatex` (not lualatex), no LaTeX
+# format and no .sty -- exercises tex/lua-placeholders.tex.
+# ---------------------------------------------------------------------------
+TEST_LUATEX_DIR := $(PACKAGE_DIR)/test/luatex
+LUATEX_COMPILE  := luatex --interaction=nonstopmode --shell-restricted
+
+$(TEST_BUILD_DIR)/basic.pdf: $(TEST_LUATEX_DIR)/basic.tex \
+                             $(TEST_LUATEX_DIR)/basic-spec.yaml \
+                             $(TEST_LUATEX_DIR)/basic-payload.yaml \
+                             tex/lua-placeholders.tex \
+                             $(wildcard scripts/*.lua)
+	@mkdir -p $(TEST_BUILD_DIR)
+	cd $(TEST_LUATEX_DIR) && \
+	  $(LUATEX_COMPILE) -output-directory=$(TEST_BUILD_DIR) basic
+
+$(TEST_BUILD_DIR)/basic.txt: $(TEST_BUILD_DIR)/basic.pdf
+	pdftotext -layout $< $@
+
+test-luatex: $(TEST_BUILD_DIR)/basic.txt
+	@if [ ! -f $(PACKAGE_DIR)/test/expected/basic.txt ]; then \
+	    echo "No expected file at test/expected/basic.txt."; \
+	    echo "Run 'make test-luatex-update' once to seed it, then commit."; \
+	    exit 1; \
+	fi
+	@diff -u $(PACKAGE_DIR)/test/expected/basic.txt $< && echo "OK: luatex basic matches"
+
+test-luatex-update: $(TEST_BUILD_DIR)/basic.txt
+	@mkdir -p $(PACKAGE_DIR)/test/expected
+	cp $< $(PACKAGE_DIR)/test/expected/basic.txt
+	@echo "luatex basic expected file updated"
 
 # complex.tex and complex-empty.tex share complex-body.tex; complex-empty
 # also reuses complex-spec.yaml (the wildcard captures only complex-empty-*).

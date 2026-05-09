@@ -1,0 +1,22 @@
+Greeting: Howdy from plain LuaTEX
+Count: 42
+Active: yes
+List: alpha, beta, gamma
+
+List items via \forlistitem:
+  – alpha
+  – beta
+  – gamma
+
+Object access:
+ name = Ada
+ email = ada@example.org
+
+Object env (\paramobject):
+ Ada lives at ada@example.org
+
+
+
+
+                                    1
+
