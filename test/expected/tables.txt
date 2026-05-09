@@ -1,0 +1,43 @@
+Case 1: All columns referenced (baseline)
+ Description     Price
+ Apples          1.50
+ Oranges         2.00
+
+Case 2: Subset of columns referenced
+Omitting \price in the row macro should drop the column silently — the row
+still iterates and the description column still renders. The unreferenced cell
+value is computed but never expanded.
+  Description
+  Apples
+  Oranges
+
+Case 3: Columns referenced in reverse order
+With string replacement, swapping the order in the row macro could interfere
+when one column name is a prefix of another. With the macro-binding approach,
+order is irrelevant.
+ Price Description
+   1.50 Apples
+   2.00 Oranges
+
+Case 4: Underscore column names with \ExplSyntaxOn
+The underscore table declares three columns: item (a number), item_name
+and unit_price. Two issues appear:
+
+  • \item is a prefix of \item_name. String-replacement substituted \item
+    first, mangling \item_name. The macro-binding implementation defines
+    each column as its own control sequence, so prefix collisions are impossible.
+
+  • Without \ExplSyntaxOn, TEX reads \item_name as \item followed by the
+    subscript token _ and the letters name, which fails. Wrap the row macro
+    in \ExplSyntaxOn …\ExplSyntaxOff to flip _ to letter catcode at parse
+    time so \item_name tokenises as one control sequence.
+
+   #    Item      Unit price
+ 1.00   Widget          9.99
+ 2.00   Gadget         14.50
+
+
+
+
+                                       1
+

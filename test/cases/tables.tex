@@ -1,0 +1,86 @@
+%% tables.tex
+%% Copyright 2026 E. Nijenhuis  -- LPPL 1.3c, see LICENSE.txt.
+%%
+%% Edge-case tests for the `table' parameter type.  Each section exercises
+%% one scenario where the previous string-replacement implementation either
+%% failed or behaved surprisingly.  After the row-stack refactor, every
+%% case below should render the same way it would if the user had hand-
+%% written the tabular by inlining payload values.
+\documentclass{article}
+\usepackage{lua-placeholders}
+\usepackage[autolanguage]{numprint}
+
+\loadrecipe[\jobname]{tables-spec.yaml}
+\loadpayload[\jobname]{tables-payload.yaml}
+
+\setlength{\parindent}{0pt}
+\nprounddigits{2}
+
+\begin{document}
+
+    \section*{Case 1: All columns referenced (baseline)}
+
+    \newcommand\rowAB{\desc & \price \\}
+    \begin{tabular}{l|l}
+        \textbf{Description} & \textbf{Price} \\\hline
+        \fortablerow{basic table}{rowAB}
+    \end{tabular}
+
+    \section*{Case 2: Subset of columns referenced}
+
+    Omitting \textbackslash price\ in the row macro should drop the column
+    silently --- the row still iterates and the description column still
+    renders.  The unreferenced cell value is computed but never expanded.
+
+    \renewcommand\rowAB{\desc \\}
+    \begin{tabular}{l}
+        \textbf{Description} \\\hline
+        \fortablerow{basic table}{rowAB}
+    \end{tabular}
+
+    \section*{Case 3: Columns referenced in reverse order}
+
+    With string replacement, swapping the order in the row macro could
+    interfere when one column name is a prefix of another.  With the
+    macro-binding approach, order is irrelevant.
+
+    \renewcommand\rowAB{\price & \desc \\}
+    \begin{tabular}{r|l}
+        \textbf{Price} & \textbf{Description} \\\hline
+        \fortablerow{basic table}{rowAB}
+    \end{tabular}
+
+    \section*{Case 4: Underscore column names with \texttt{\textbackslash ExplSyntaxOn}}
+
+    The \texttt{underscore~table} declares three columns: \texttt{item}
+    (a number), \texttt{item\_name} and \texttt{unit\_price}.  Two issues
+    appear:
+
+    \begin{itemize}
+        \item \texttt{\textbackslash item} is a prefix of
+              \texttt{\textbackslash item\_name}.  String-replacement
+              substituted \texttt{\textbackslash item} first, mangling
+              \texttt{\textbackslash item\_name}.  The macro-binding
+              implementation defines each column as its own control
+              sequence, so prefix collisions are impossible.
+        \item Without \texttt{\textbackslash ExplSyntaxOn}, \TeX{} reads
+              \texttt{\textbackslash item\_name} as
+              \texttt{\textbackslash item} followed by the subscript
+              token \texttt{\_} and the letters \texttt{name}, which
+              fails.  Wrap the row macro in
+              \texttt{\textbackslash ExplSyntaxOn~\dots
+              \textbackslash ExplSyntaxOff} to flip \texttt{\_} to
+              letter catcode at parse time so \texttt{\textbackslash
+              item\_name} tokenises as one control sequence.
+    \end{itemize}
+
+    \ExplSyntaxOn
+    \cs_new:Npn \rowU {\item & \item_name & \unit_price \\}
+    \ExplSyntaxOff
+
+    \begin{tabular}{r|l|r}
+        \textbf{\#} & \textbf{Item} & \textbf{Unit price} \\\hline
+        \fortablerow{underscore table}{rowU}
+    \end{tabular}
+
+\end{document}

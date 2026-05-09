@@ -39,6 +39,12 @@ local api = {
         is_set_false = token.create('has@param@false'),
     }
 }
+
+-- Active \fortablerow iterations.  Each frame holds the prepared row data;
+-- the topmost frame is consumed by api.set_row_macros between rows and
+-- popped by api.pop_row_stack when the iteration finishes.  Stack form
+-- naturally supports nested \fortablerow calls.
+local row_stack = {}
 local lua_placeholders = {}
 local lua_placeholders_mt = {
     __index = api,
@@ -185,41 +191,87 @@ function api.for_item(list_key, namespace, csname)
     end
 end
 
+-- Synthesise a single placeholder row from a column spec when there is no
+-- payload to iterate over.  Each cell exposes a :val() method matching the
+-- shape produced by base_param:load(), so set_row_macros can treat it the
+-- same as a real row.
+local function placeholder_row(columns)
+    local row = {}
+    for col_key, col in pairs(columns) do
+        if col.default ~= nil then
+            -- Reuse the column's own :val() (handles \numprint, etc.)
+            row[col_key] = col
+        else
+            local txt = '\\paramplaceholder{' .. (col.placeholder or col_key) .. '}'
+            row[col_key] = { val = function() return txt end }
+        end
+    end
+    return row
+end
+
+-- Called by TeX between each row.  Pulls the current frame off the stack
+-- and binds every column of the requested row to a global control sequence
+-- via token.set_macro.  Setting macros by name bypasses TeX's catcode rules
+-- at definition time (so columns whose names contain '_' work even if the
+-- user hasn't switched on \ExplSyntaxOn yet); however the user's row macro
+-- still has to reference them with the right catcodes, hence the
+-- \ExplSyntaxOn idiom.
+function api.set_row_macros(idx_str)
+    local frame = row_stack[#row_stack]
+    if not frame then
+        tex.error('lua-placeholders: row binder called outside of \\fortablerow')
+        return
+    end
+    local idx = tonumber(idx_str)
+    local row = frame.rows[idx]
+    if not row then
+        tex.error('lua-placeholders: row index ' .. tostring(idx) .. ' out of range')
+        return
+    end
+    for col_key, cell in pairs(row) do
+        local val = cell:val() or ''
+        token.set_macro(col_key, val, 'global')
+    end
+end
+
+function api.pop_row_stack()
+    table.remove(row_stack)
+end
+
 function api.with_rows(key, namespace, csname)
     local param = get_param(key, namespace)
-    if token.is_defined(csname) then
-        local row_content = token.get_macro(csname)
-        if param then
-            if param.values or api.strict then
-                if #param.values > 0 then
-                    for _, row in ipairs(param.values) do
-                        local format = row_content
-                        for col_key, cell in pairs(row) do
-                            format = format:gsub('\\' .. col_key, cell:val())
-                        end
-                        tex.print(format)
-                    end
-                end
-            elseif param.columns then
-                texio.write_nl("Warning: no values set for " .. param.key)
-                local format = row_content
-                for col_key, col in pairs(param.columns) do
-                    if col.default ~= nil then
-                        format = format:gsub('\\' .. col_key, col:val())
-                    else
-                        format = format:gsub('\\' .. col_key, '{\\paramplaceholder{' .. (col.placeholder or col_key) .. '}}')
-                    end
-                end
-                tex.print(format)
-            else
-                tex.error('No values either columns available')
-            end
-        else
-            tex.error('Error: no such parameter')
-        end
-    else
-        tex.error('Error: no such command: ', csname or 'nil')
+    if not param then
+        tex.error('lua-placeholders: no such parameter "' .. tostring(key) .. '"')
+        return
     end
+    if not token.is_defined(csname) then
+        tex.error('lua-placeholders: undefined row macro \\' .. tostring(csname))
+        return
+    end
+
+    local rows
+    if param.values and #param.values > 0 then
+        rows = param.values
+    elseif param.columns then
+        texio.write_nl('Warning: no values set for ' .. param.key)
+        rows = { placeholder_row(param.columns) }
+    elseif api.strict then
+        tex.error('lua-placeholders: table parameter has no values and no columns')
+        return
+    else
+        return
+    end
+
+    -- Push the prepared rows onto the stack.  Each row is then materialised
+    -- one at a time by an interleaved \directlua call so that the user's row
+    -- macro always sees the current row's column bindings and never the
+    -- previous row's.
+    table.insert(row_stack, { rows = rows })
+    for i = 1, #rows do
+        tex.sprint('\\directlua{lua_placeholders.set_row_macros(' .. i .. ')}')
+        tex.sprint('\\' .. csname)
+    end
+    tex.sprint('\\directlua{lua_placeholders.pop_row_stack()}')
 end
 
 return lua_placeholders

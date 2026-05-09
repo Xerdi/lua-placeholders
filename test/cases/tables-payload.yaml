@@ -1,0 +1,12 @@
+basic table:
+  - desc: Apples
+    price: 1.5
+  - desc: Oranges
+    price: 2
+underscore table:
+  - item: 1
+    item_name: Widget
+    unit_price: 9.99
+  - item: 2
+    item_name: Gadget
+    unit_price: 14.5

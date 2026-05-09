@@ -1,0 +1,21 @@
+basic table:
+  type: table
+  columns:
+    desc:
+      type: string
+      placeholder: The description
+    price:
+      type: number
+      placeholder: The price
+underscore table:
+  type: table
+  columns:
+    item:
+      type: number
+      placeholder: The item number
+    item_name:
+      type: string
+      placeholder: The item
+    unit_price:
+      type: number
+      placeholder: The unit price

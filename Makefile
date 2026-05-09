@@ -53,7 +53,46 @@ $(CONTRIBUTION): doc/lua-placeholders-manual.pdf clean
 		--exclude=doc/.latexmkrc \
 		-czvf $(CONTRIBUTION) ./README.md ./doc ./scripts ./tex
 
-test: test-example
+test: test-example test-tables
+
+# ---------------------------------------------------------------------------
+# Per-type case tests live under test/cases/<name>.tex (with sibling
+# <name>-spec.yaml / <name>-payload.yaml).  Same compile + normalise +
+# diff pipeline as the rich example test.
+# ---------------------------------------------------------------------------
+TEST_CASES_DIR := $(PACKAGE_DIR)/test/cases
+
+$(TEST_BUILD_DIR)/tables.pdf: $(TEST_CASES_DIR)/tables.tex \
+                              $(TEST_CASES_DIR)/tables-spec.yaml \
+                              $(TEST_CASES_DIR)/tables-payload.yaml \
+                              tex/lua-placeholders.sty \
+                              $(wildcard scripts/*.lua)
+	@mkdir -p $(TEST_BUILD_DIR)
+	cd $(TEST_CASES_DIR) && \
+	  $(COMPILE) -output-directory=$(TEST_BUILD_DIR) tables
+
+$(TEST_BUILD_DIR)/tables.txt: $(TEST_BUILD_DIR)/tables.pdf
+	pdftotext -layout $< $@.raw
+	sed -E \
+	    -e 's|version [^ ]+ written on [0-9]{4}[-/][0-9]{2}[-/][0-9]{2}|version <VERSION> written on <DATE>|' \
+	    -e 's|^[[:space:]]+[A-Z][a-z]+ [0-9]{1,2}, [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
+	    -e 's|^[[:space:]]+[0-9]{1,2}(st\|nd\|rd\|th) [A-Z][a-z]+ [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
+	    -e 's|^[[:space:]]+[0-9]{1,2} [a-z]+ [0-9]{4}[[:space:]]*$$|                                  <DATE>|' \
+	    $@.raw > $@
+	@$(RM) $@.raw
+
+test-tables: $(TEST_BUILD_DIR)/tables.txt
+	@if [ ! -f $(PACKAGE_DIR)/test/expected/tables.txt ]; then \
+	    echo "No expected file at test/expected/tables.txt."; \
+	    echo "Run 'make test-tables-update' once to seed it, then commit."; \
+	    exit 1; \
+	fi
+	@diff -u $(PACKAGE_DIR)/test/expected/tables.txt $< && echo "OK: tables matches"
+
+test-tables-update: $(TEST_BUILD_DIR)/tables.txt
+	@mkdir -p $(PACKAGE_DIR)/test/expected
+	cp $< $(PACKAGE_DIR)/test/expected/tables.txt
+	@echo "Tables expected file updated"
 
 $(TEST_BUILD_DIR)/example.pdf: $(EXAMPLE_DIR)/example.tex \
                                $(EXAMPLE_DIR)/example.yaml \
