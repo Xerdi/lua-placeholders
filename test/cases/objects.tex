@@ -1,0 +1,72 @@
+%% objects.tex -- Edge-case tests for the `object' parameter type, including
+%% objects whose fields are themselves complex parameters.
+\documentclass{article}
+\usepackage{lua-placeholders}
+\usepackage[autolanguage]{numprint}
+
+\loadrecipe[\jobname]{objects-spec.yaml}
+\loadpayload[\jobname]{objects-payload.yaml}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+    \section*{Case 1: object with primitive fields (baseline)}
+
+    \texttt{\textbackslash paramfield} per field:
+
+    Name: \paramfield{user}{name}\\
+    Email: \paramfield{user}{email}
+
+    \medskip
+
+    \texttt{paramobject} environment binding every field as a local macro:
+
+    \begin{paramobject}{user}\name{} can be reached at \email.\end{paramobject}
+
+    \section*{Case 2: object with a list field}
+
+    The \texttt{team} object has a primitive \texttt{name} and a
+    \texttt{members} list.  The \texttt{paramobject} environment now
+    skips the list field (it can't be flattened) but pushes the object
+    as a context, so \texttt{\textbackslash forlistitem\{members\}}
+    finds the inner list naturally.
+
+    \newcommand\itemBullet[1]{\textbullet\ #1\quad}
+    \begin{paramobject}{team}
+        \name{} consists of: \forlistitem{members}{itemBullet}
+    \end{paramobject}
+
+    \medskip
+
+    Same data, accessed without the env --- \texttt{\textbackslash paramfield}
+    on the list field calls \texttt{\textbackslash param} on the inner list:
+
+    Members: \param{team} % team isn't useful here, only as object
+    --- members directly:
+    \begin{paramobject}{team}\param{members}\end{paramobject}
+
+    \section*{Case 3: object with an object field --- nested access}
+
+    The \texttt{nested} object has a \texttt{label} string and an
+    \texttt{address} sub-object.  Inside the env, the inner object is
+    reachable by name, so \texttt{\textbackslash paramfield\{address\}\{street\}}
+    drills one more level:
+
+    \begin{paramobject}{nested}
+        Label: \label\\
+        Street: \paramfield{address}{street}\\
+        City: \paramfield{address}{city}
+    \end{paramobject}
+
+    \medskip
+
+    Or, doubly nested with two \texttt{paramobject} envs:
+
+    \begin{paramobject}{nested}
+        \begin{paramobject}{address}
+            \label{} sits at \street, \city.
+        \end{paramobject}
+    \end{paramobject}
+
+\end{document}

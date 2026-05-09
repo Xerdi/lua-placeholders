@@ -48,7 +48,7 @@
     \def\has@param@false{#4}%
     \directlua{lua_placeholders.handle_param_is_set('#2', '#1')}}
 \newcommand\paramfield[3][\curnamespace]{\directlua{lua_placeholders.field('#2','#3', '#1')}}
-\newenvironment{paramobject}[2][\curnamespace]{\directlua{lua_placeholders.with_object('#2', '#1')}}{}
+\newenvironment{paramobject}[2][\curnamespace]{\directlua{lua_placeholders.with_object('#2', '#1')}}{\directlua{lua_placeholders.exit_object()}}
 \newcommand\forlistitem[3][\curnamespace]{\directlua{lua_placeholders.for_item('#2', '#1', '#3')}}
 \newcommand\fortablerow[3][\curnamespace]{\directlua{lua_placeholders.with_rows('#2', '#1', '#3')}}
 \newcommand\loadrecipe[2][]{\directlua{lua_placeholders.recipe('#2', '#1')}}

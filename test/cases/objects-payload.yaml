@@ -1,0 +1,14 @@
+user:
+  name: Alice
+  email: alice@example.com
+team:
+  name: Platform
+  members:
+    - Alice
+    - Bob
+    - Carol
+nested:
+  label: HQ
+  address:
+    street: 1 Main St
+    city: Springfield

@@ -1,0 +1,34 @@
+Case 1: object with primitive fields (baseline)
+\paramfield per field:
+Name: Alice
+Email: alice@example.com
+paramobject environment binding every field as a local macro:
+Alice can be reached at alice@example.com.
+
+
+Case 2: object with a list field
+The team object has a primitive name and a members list. The paramobject
+environment now skips the list field (it can’t be flattened) but pushes the object
+as a context, so \forlistitem{members} finds the inner list naturally.
+Platform consists of: • Alice • Bob • Carol
+Same data, accessed without the env — \paramfield on the list field calls
+\param on the inner list:
+Members: [team] — members directly: Alice, Bob, Carol
+
+
+Case 3: object with an object field — nested ac-
+cess
+The nested object has a label string and an address sub-object. Inside the
+env, the inner object is reachable by name, so \paramfield{address}{street}
+drills one more level:
+Label: HQ
+Street: 1 Main St
+City: Springfield
+Or, doubly nested with two paramobject envs:
+HQ sits at 1 Main St, Springfield.
+
+
+
+
+                                        1
+

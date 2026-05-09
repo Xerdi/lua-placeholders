@@ -166,9 +166,19 @@ list_param = base_param:new{
 }
 
 function list_param:new(key, _o)
+    -- Two ways to spell the item shape:
+    --   item type: <name>     -- short form for primitive items
+    --   item: { type: <name>, fields: {...} }  -- full nested spec, needed for
+    --                            object/list item types
+    local item_spec
+    if type(_o.item) == 'table' then
+        item_spec = _o.item
+    else
+        item_spec = { type = (_o["item type"] or 'string') }
+    end
     local o = {
         key = key,
-        item_type = base_param.define('list_item', { type = (_o["item type"] or 'string') }),
+        item_type = base_param.define('list_item', item_spec),
         default = {}
     }
     if _o.default then

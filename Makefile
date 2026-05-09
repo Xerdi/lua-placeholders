@@ -53,7 +53,7 @@ $(CONTRIBUTION): doc/lua-placeholders-manual.pdf clean
 		--exclude=doc/.latexmkrc \
 		-czvf $(CONTRIBUTION) ./README.md ./doc ./scripts ./tex
 
-test: test-example test-tables
+test: test-example test-tables test-lists test-objects
 
 # ---------------------------------------------------------------------------
 # Per-type case tests live under test/cases/<name>.tex (with sibling
@@ -93,6 +93,46 @@ test-tables-update: $(TEST_BUILD_DIR)/tables.txt
 	@mkdir -p $(PACKAGE_DIR)/test/expected
 	cp $< $(PACKAGE_DIR)/test/expected/tables.txt
 	@echo "Tables expected file updated"
+
+# ---------------------------------------------------------------------------
+# Generic per-case rule.  For test/cases/<name>.tex with sibling YAML files,
+# defining a make target test-<name> compiles, normalises, and diffs.
+# ---------------------------------------------------------------------------
+define CASE_template
+$$(TEST_BUILD_DIR)/$(1).pdf: $$(TEST_CASES_DIR)/$(1).tex \
+                              $$(wildcard $$(TEST_CASES_DIR)/$(1)-*.yaml) \
+                              tex/lua-placeholders.sty \
+                              $$(wildcard scripts/*.lua)
+	@mkdir -p $$(TEST_BUILD_DIR)
+	cd $$(TEST_CASES_DIR) && \
+	  $$(COMPILE) -output-directory=$$(TEST_BUILD_DIR) $(1)
+
+$$(TEST_BUILD_DIR)/$(1).txt: $$(TEST_BUILD_DIR)/$(1).pdf
+	pdftotext -layout $$< $$@.raw
+	sed -E \
+	    -e 's|version [^ ]+ written on [0-9]{4}[-/][0-9]{2}[-/][0-9]{2}|version <VERSION> written on <DATE>|' \
+	    -e 's|^[[:space:]]+[A-Z][a-z]+ [0-9]{1,2}, [0-9]{4}[[:space:]]*$$$$|                                  <DATE>|' \
+	    -e 's|^[[:space:]]+[0-9]{1,2}(st\|nd\|rd\|th) [A-Z][a-z]+ [0-9]{4}[[:space:]]*$$$$|                                  <DATE>|' \
+	    -e 's|^[[:space:]]+[0-9]{1,2} [a-z]+ [0-9]{4}[[:space:]]*$$$$|                                  <DATE>|' \
+	    $$@.raw > $$@
+	@$$(RM) $$@.raw
+
+test-$(1): $$(TEST_BUILD_DIR)/$(1).txt
+	@if [ ! -f $$(PACKAGE_DIR)/test/expected/$(1).txt ]; then \
+	    echo "No expected file at test/expected/$(1).txt."; \
+	    echo "Run 'make test-$(1)-update' once to seed it, then commit."; \
+	    exit 1; \
+	fi
+	@diff -u $$(PACKAGE_DIR)/test/expected/$(1).txt $$< && echo "OK: $(1) matches"
+
+test-$(1)-update: $$(TEST_BUILD_DIR)/$(1).txt
+	@mkdir -p $$(PACKAGE_DIR)/test/expected
+	cp $$< $$(PACKAGE_DIR)/test/expected/$(1).txt
+	@echo "$(1) expected file updated"
+endef
+
+$(eval $(call CASE_template,lists))
+$(eval $(call CASE_template,objects))
 
 $(TEST_BUILD_DIR)/example.pdf: $(EXAMPLE_DIR)/example.tex \
                                $(EXAMPLE_DIR)/example.yaml \

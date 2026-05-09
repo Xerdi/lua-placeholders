@@ -1,0 +1,33 @@
+user:
+  type: object
+  fields:
+    name:
+      type: string
+      placeholder: Full name
+    email:
+      type: string
+      placeholder: Email
+team:
+  type: object
+  fields:
+    name:
+      type: string
+      placeholder: Team name
+    members:
+      type: list
+      item type: string
+nested:
+  type: object
+  fields:
+    label:
+      type: string
+      placeholder: Label
+    address:
+      type: object
+      fields:
+        street:
+          type: string
+          placeholder: Street
+        city:
+          type: string
+          placeholder: City

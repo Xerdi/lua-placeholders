@@ -1,0 +1,24 @@
+strings:
+  type: list
+  item type: string
+  default:
+    - one
+    - two
+    - three
+numbers:
+  type: list
+  item type: number
+people:
+  type: list
+  item:
+    type: object
+    fields:
+      name:
+        type: string
+        placeholder: Name
+      role:
+        type: string
+        placeholder: Role
+      age:
+        type: number
+        placeholder: Age

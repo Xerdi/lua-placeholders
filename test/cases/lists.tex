@@ -1,0 +1,54 @@
+%% lists.tex -- Edge-case tests for the `list' parameter type, including
+%% lists whose item type is itself a complex parameter.
+\documentclass{article}
+\usepackage{lua-placeholders}
+\usepackage[autolanguage]{numprint}
+
+\loadrecipe[\jobname]{lists-spec.yaml}
+\loadpayload[\jobname]{lists-payload.yaml}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+    \section*{Case 1: list of strings (defaults from recipe)}
+
+    \texttt{\textbackslash param} concatenates with \texttt{\textbackslash paramlistconjunction}:\\
+    \param{strings}
+
+    \medskip
+
+    Iterating with \texttt{\textbackslash forlistitem} --- the csname takes one argument:
+
+    \newcommand\itemBullet[1]{\textbullet\ #1\quad}
+    \forlistitem{strings}{itemBullet}
+
+    \section*{Case 2: list of numbers}
+
+    \param{numbers}
+
+    \medskip
+
+    \forlistitem{numbers}{itemBullet}
+
+    \section*{Case 3: list of objects --- type survives}
+
+    Each item in \texttt{people} is an object with fields \texttt{name},
+    \texttt{role}, \texttt{age}.  Because the item type isn't a primitive,
+    \texttt{\textbackslash forlistitem} pushes each item's fields onto the
+    context stack and the row macro accesses them by name --- with no
+    arguments.
+
+    \newcommand\peopleRow{\name{} (\role, \age) -- }
+    \forlistitem{people}{peopleRow}
+
+    \medskip
+
+    The same iteration written so each person becomes a sentence using
+    the bound field macros \texttt{\textbackslash name},
+    \texttt{\textbackslash role}, \texttt{\textbackslash age}:
+
+    \newcommand\peopleSentence{\name{} works as \role{} and is \age{} years old.\par}
+    \forlistitem{people}{peopleSentence}
+
+\end{document}

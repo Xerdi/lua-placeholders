@@ -234,12 +234,12 @@
         For example, the name \texttt{example} would be accessible as \cmd{\example} in the user-defined command body.
         Cells do not require braces; the column macros expand naturally inside \TeX, so \texttt{\textbackslash example} works the same way as \texttt{\textbackslash example\{\}}.
 
-        Internally, \cmd{\fortablerow} maintains a stack of in-progress iterations and rebinds every column to a global control sequence (\cmd{\token.set_macro}) just before each invocation of \meta{csname}.
+        Internally, \cmd{\fortablerow} maintains a stack of in-progress iterations and rebinds every column to a global control sequence (\cmd{\token.set\_macro}) just before each invocation of \meta{csname}.
         Because the column macros are real \TeX{} control sequences --- not string substitutions --- prefix collisions between column names (e.g.\ a column \texttt{item} alongside \texttt{item\_name}) are no longer a concern, and unreferenced columns in \meta{csname} are silently dropped instead of leaking partial substitutions.
 
         \paragraph{Underscore in a column name.}
-        \cmd{\token.set_macro} is catcode-agnostic, so it can define a control sequence \cmd{\item_name} regardless of the catcode of \texttt{\_} at the time \cmd{\fortablerow} runs.
-        \emph{Using} that control sequence in \meta{csname}, however, requires \texttt{\_} to have letter catcode (\texttt{11}) when the row macro is parsed --- otherwise \TeX{} reads \cmd{\item_name} as \cmd{\item} followed by the subscript token \texttt{\_} and the letters \texttt{name}.
+        \cmd{\token.set\_macro} is catcode-agnostic, so it can define a control sequence \cmd{\item\_name} regardless of the catcode of \texttt{\_} at the time \cmd{\fortablerow} runs.
+        \emph{Using} that control sequence in \meta{csname}, however, requires \texttt{\_} to have letter catcode (\texttt{11}) when the row macro is parsed --- otherwise \TeX{} reads \cmd{\item\_name} as \cmd{\item} followed by the subscript token \texttt{\_} and the letters \texttt{name}.
         The standard idiom is to wrap the row macro definition in \cmd{\ExplSyntaxOn}~\dots\cmd{\ExplSyntaxOff}, which temporarily flips \texttt{\_} (and \texttt{:}) to letter catcode for the parser:
         \begin{verbatim}
 \ExplSyntaxOn

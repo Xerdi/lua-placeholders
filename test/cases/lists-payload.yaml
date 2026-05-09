@@ -1,0 +1,14 @@
+numbers:
+  - 1
+  - 2
+  - 3.14
+people:
+  - name: Alice
+    role: Engineer
+    age: 31
+  - name: Bob
+    role: Designer
+    age: 27
+  - name: Carol
+    role: PM
+    age: 42

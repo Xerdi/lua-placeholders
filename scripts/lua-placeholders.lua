@@ -40,11 +40,21 @@ local api = {
     }
 }
 
--- Active \fortablerow iterations.  Each frame holds the prepared row data;
--- the topmost frame is consumed by api.set_row_macros between rows and
--- popped by api.pop_row_stack when the iteration finishes.  Stack form
--- naturally supports nested \fortablerow calls.
-local row_stack = {}
+-- Stack of active lookup contexts.  A frame is pushed by anything that wants
+-- nested key lookups to resolve against an in-progress structure rather than
+-- the top-level namespace: \fortablerow (one frame per iteration, advancing
+-- the active entry per row), \forlistitem on a list of objects (same shape
+-- as a table iteration, one entry per item's fields), and the \paramobject
+-- environment (a single fixed entry for the object's fields).
+--
+-- Each frame holds:
+--     entries  -- array of key->cell maps to walk through
+--     current  -- the entry currently bound (consulted by get_param)
+--
+-- Frames are popped by api.pop_ctx (after \fortablerow / \forlistitem) or
+-- api.exit_object (\end{paramobject}).  Stack form means nested contexts
+-- (e.g. \paramobject inside another \paramobject) compose naturally.
+local ctx_stack = {}
 local lua_placeholders = {}
 local lua_placeholders_mt = {
     __index = api,
@@ -58,15 +68,16 @@ setmetatable(lua_placeholders, lua_placeholders_mt)
 local lua_placeholders_namespace = require('lua-placeholders-namespace')
 local load_resource = require('lua-placeholders-parser')
 
--- Look up a parameter by key.  When invoked from inside a \fortablerow
--- iteration (i.e. the row stack is non-empty and the topmost frame has an
--- active row), cells of the active row shadow the namespace.  This is what
--- lets list/object cells keep their type: \forlistitem, \paramfield etc.
--- find the cell here instead of looking only at the top-level namespace.
+-- Look up a parameter by key.  When invoked from inside any active context
+-- (table row, object env, list-of-object iteration), the topmost frame's
+-- current entry shadows the top-level namespace.  This is what lets a cell
+-- whose type is itself complex (list, object, table) keep that type:
+-- \forlistitem, \paramfield, \paramobject, \fortablerow find the cell here
+-- instead of only looking at the namespace.
 local function get_param(key, namespace)
-    local frame = row_stack[#row_stack]
-    if frame and frame.current_row and frame.current_row[key] then
-        return frame.current_row[key]
+    local frame = ctx_stack[#ctx_stack]
+    if frame and frame.current and frame.current[key] then
+        return frame.current[key]
     end
     namespace = namespace or tex.jobname
     local _namespace = api.namespaces[namespace]
@@ -171,39 +182,81 @@ end
 
 function api.with_object(object_key, namespace)
     local object = get_param(object_key, namespace)
+    if not object then
+        tex.error('lua-placeholders: no such object "' .. tostring(object_key) .. '"')
+        return
+    end
+    -- Push the object's fields as a context so nested lookups
+    -- (\paramfield, \forlistitem on a sub-list, \paramobject on a sub-object)
+    -- resolve against this object before falling back to the namespace.
+    table.insert(ctx_stack, { entries = { object.fields }, current = object.fields })
+    -- Bind primitive fields as direct \field macros, scoped to the \begin
+    -- \end paramobject group (no 'global' here, unlike bind_ctx, since the
+    -- env's TeX group handles cleanup naturally — \name reverts to its
+    -- previous meaning after \end{paramobject}).  Complex fields are reachable
+    -- via the type-specific commands once they hit get_param.
     for key, param in pairs(object.fields) do
-        local val = param:val()
-        if val then
-            token.set_macro(key, param:val() .. '\\xspace')
-        else
-            token.set_macro(key, '\\paramplaceholder{' .. (param.placeholder or key) .. '}\\xspace')
+        if param.type ~= 'list' and param.type ~= 'object' and param.type ~= 'table' then
+            local val = param:val()
+            if val ~= nil then
+                token.set_macro(key, val .. '\\xspace')
+            else
+                token.set_macro(key, '\\paramplaceholder{' .. (param.placeholder or key) .. '}\\xspace')
+            end
         end
     end
 end
 
+function api.exit_object()
+    table.remove(ctx_stack)
+end
+
 function api.for_item(list_key, namespace, csname)
     local param = get_param(list_key, namespace)
+    if not param then
+        tex.error('lua-placeholders: no such list "' .. tostring(list_key) .. '"')
+        return
+    end
+    if not token.is_defined(csname) then
+        tex.error('lua-placeholders: undefined item macro \\' .. tostring(csname))
+        return
+    end
     local list = param:val()
-    if #list > 0 then
-        if token.is_defined(csname) then
-            local tok = token.create(csname)
-            for _, item in ipairs(list) do
-                if param.values then
-                    tex.sprint(tok, '{', item:val(), '}')
-                else
-                    tex.sprint(tok, '{', lua_placeholders_toks.placeholder_format, '{', item:val(), '}}')
-                end
+    if #list == 0 then return end
+
+    local item_type = param.item_type and param.item_type.type
+    if item_type == 'object' then
+        -- Each item is an object; treat its fields as one entry in a context
+        -- frame and let the user's csname access them via direct \field
+        -- macros or nested type-specific commands.  csname takes no arguments
+        -- here.
+        local entries = {}
+        for _, item in ipairs(list) do
+            table.insert(entries, item.fields)
+        end
+        table.insert(ctx_stack, { entries = entries })
+        for i = 1, #entries do
+            tex.sprint('\\directlua{lua_placeholders.bind_ctx(' .. i .. ')}')
+            tex.sprint('\\' .. csname)
+        end
+        tex.sprint('\\directlua{lua_placeholders.pop_ctx()}')
+    else
+        -- Primitive item: csname takes the value as a single argument.
+        local tok = token.create(csname)
+        for _, item in ipairs(list) do
+            if param.values then
+                tex.sprint(tok, '{', item:val(), '}')
+            else
+                tex.sprint(tok, '{', lua_placeholders_toks.placeholder_format, '{', item:val(), '}}')
             end
-        else
-            tex.error('No such command ', csname or 'nil')
         end
     end
 end
 
 -- Synthesise a single placeholder row from a column spec when there is no
 -- payload to iterate over.  Each cell exposes a :val() method matching the
--- shape produced by base_param:load(), so set_row_macros can treat it the
--- same as a real row.
+-- shape produced by base_param:load(), so bind_ctx can treat it the same as
+-- a real row.
 local function placeholder_row(columns)
     local row = {}
     for col_key, col in pairs(columns) do
@@ -218,34 +271,35 @@ local function placeholder_row(columns)
     return row
 end
 
--- Called by TeX between each row.  Pulls the current frame off the stack
--- and binds every column of the requested row to a global control sequence
+-- Called by TeX between each iteration.  Advances the topmost context frame
+-- to entry idx and binds every leaf-typed cell to a global control sequence
 -- via token.set_macro.  Setting macros by name bypasses TeX's catcode rules
--- at definition time (so columns whose names contain '_' work even if the
--- user hasn't switched on \ExplSyntaxOn yet); however the user's row macro
+-- at definition time (so cells whose keys contain '_' work even if the user
+-- hasn't switched on \ExplSyntaxOn yet); however the user's iteration macro
 -- still has to reference them with the right catcodes, hence the
 -- \ExplSyntaxOn idiom.
-function api.set_row_macros(idx_str)
-    local frame = row_stack[#row_stack]
+function api.bind_ctx(idx_str)
+    local frame = ctx_stack[#ctx_stack]
     if not frame then
-        tex.error('lua-placeholders: row binder called outside of \\fortablerow')
+        tex.error('lua-placeholders: bind_ctx called outside of \\fortablerow / \\forlistitem')
         return
     end
     local idx = tonumber(idx_str)
-    local row = frame.rows[idx]
-    if not row then
-        tex.error('lua-placeholders: row index ' .. tostring(idx) .. ' out of range')
+    local entry = frame.entries[idx]
+    if not entry then
+        tex.error('lua-placeholders: ctx entry ' .. tostring(idx) .. ' out of range')
         return
     end
-    -- Stash the row so get_param resolves \param/\forlistitem/\paramfield/...
-    -- references against this row's cells before falling back to the namespace.
-    frame.current_row = row
-    for col_key, cell in pairs(row) do
+    -- Stash the entry so get_param resolves \param / \forlistitem /
+    -- \paramfield / ... references against its cells before falling back to
+    -- the namespace.
+    frame.current = entry
+    for col_key, cell in pairs(entry) do
         -- list/object/table cells aren't flattened: the type is preserved on
-        -- the row frame and the user reaches them via the type-specific
-        -- commands (\forlistitem, \paramfield, \paramobject, \fortablerow).
+        -- the frame and the user reaches them via the type-specific commands
+        -- (\forlistitem, \paramfield, \paramobject, \fortablerow).
         -- Everything else, including synthetic placeholder cells, becomes a
-        -- plain control sequence the row macro can drop in directly.
+        -- plain control sequence the iteration macro can drop in directly.
         if cell.type ~= 'list' and cell.type ~= 'object' and cell.type ~= 'table' then
             local val = cell:val()
             if val == nil then
@@ -256,8 +310,8 @@ function api.set_row_macros(idx_str)
     end
 end
 
-function api.pop_row_stack()
-    table.remove(row_stack)
+function api.pop_ctx()
+    table.remove(ctx_stack)
 end
 
 function api.with_rows(key, namespace, csname)
@@ -284,16 +338,16 @@ function api.with_rows(key, namespace, csname)
         return
     end
 
-    -- Push the prepared rows onto the stack.  Each row is then materialised
-    -- one at a time by an interleaved \directlua call so that the user's row
-    -- macro always sees the current row's column bindings and never the
-    -- previous row's.
-    table.insert(row_stack, { rows = rows })
+    -- Push the prepared rows as a context frame.  Each row is then
+    -- materialised one at a time by an interleaved \directlua call so that
+    -- the user's row macro always sees the current row's column bindings
+    -- and never the previous row's.
+    table.insert(ctx_stack, { entries = rows })
     for i = 1, #rows do
-        tex.sprint('\\directlua{lua_placeholders.set_row_macros(' .. i .. ')}')
+        tex.sprint('\\directlua{lua_placeholders.bind_ctx(' .. i .. ')}')
         tex.sprint('\\' .. csname)
     end
-    tex.sprint('\\directlua{lua_placeholders.pop_row_stack()}')
+    tex.sprint('\\directlua{lua_placeholders.pop_ctx()}')
 end
 
 return lua_placeholders

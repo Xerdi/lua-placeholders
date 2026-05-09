@@ -1,0 +1,28 @@
+Case 1: list of strings (defaults from recipe)
+\param concatenates with \paramlistconjunction:
+[one, two, three]
+Iterating with \forlistitem — the csname takes one argument:
+• [one] • [two] • [three]
+
+
+Case 2: list of numbers
+1, 2, 3.14
+•1    •2     • 3.14
+
+
+Case 3: list of objects — type survives
+Each item in people is an object with fields name, role, age. Because the item
+type isn’t a primitive, \forlistitem pushes each item’s fields onto the context
+stack and the row macro accesses them by name — with no arguments.
+Alice (Engineer, 31) – Bob (Designer, 27) – Carol (PM, 42) –
+The same iteration written so each person becomes a sentence using the bound
+field macros \name, \role, \age:
+Alice works as Engineer and is 31 years old.
+Bob works as Designer and is 27 years old.
+Carol works as PM and is 42 years old.
+
+
+
+
+                                      1
+
