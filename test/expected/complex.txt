@@ -1,0 +1,55 @@
+1. list[object[table]] — companies
+Acme Corp
+ Name       Role
+ Alice      Engineer
+ Bob        Designer
+
+Globex
+ Name       Role
+ Carol      PM
+ Dave       Engineer
+ Eve        SRE
+
+2. list[table[object]] — sites
+ Key      Contact      Email
+ web      Alice        alice@web.io
+ api      Bob          bob@api.io
+ Key      Contact      Email
+ db       Carol        carol@db.io
+
+
+3. object[list[table]] — projects.sprints
+Project: Engine
+ Task        Hours
+ Setup           8
+ Refactor       16
+ Task       Hours
+ Polish         4
+
+
+4. object[table[list]] — catalog.products with
+tags
+Catalog: Hardware
+ SKU Tags
+ A100 • drill • power-tool
+ B200 • hammer • hand-tool            • classic
+
+
+
+
+                                       1
+5. table[object[list]] — matrix with profile.skills
+Title      Profile
+Frontend   Alice: • react • css
+Backend    Bob: • go • sql • redis
+
+6. table[list[object]] — ledger.transactions
+Account    Transactions
+Cash       (Opening, 100)   (Refund, −25)
+Revenue    (Sale, 500)
+
+
+
+
+                                   2
+

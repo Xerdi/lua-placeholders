@@ -240,6 +240,21 @@ function api.for_item(list_key, namespace, csname)
             tex.sprint('\\' .. csname)
         end
         tex.sprint('\\directlua{lua_placeholders.pop_ctx()}')
+    elseif item_type == 'list' or item_type == 'table' then
+        -- Each item is itself a complex type with no natural field name.
+        -- Bind it under the synthetic key 'self' so the user's csname can
+        -- reach the current item with e.g. \fortablerow{self}{...} or
+        -- \forlistitem{self}{...}.  csname takes no arguments here.
+        local entries = {}
+        for _, item in ipairs(list) do
+            table.insert(entries, { self = item })
+        end
+        table.insert(ctx_stack, { entries = entries })
+        for i = 1, #entries do
+            tex.sprint('\\directlua{lua_placeholders.bind_ctx(' .. i .. ')}')
+            tex.sprint('\\' .. csname)
+        end
+        tex.sprint('\\directlua{lua_placeholders.pop_ctx()}')
     else
         -- Primitive item: csname takes the value as a single argument.
         local tok = token.create(csname)

@@ -1,0 +1,109 @@
+# 1. list -> object -> table
+companies:
+  type: list
+  item:
+    type: object
+    fields:
+      company:
+        type: string
+        placeholder: Company
+      employees:
+        type: table
+        columns:
+          name:
+            type: string
+            placeholder: Employee
+          role:
+            type: string
+            placeholder: Role
+
+# 2. list -> table -> object
+sites:
+  type: list
+  item:
+    type: table
+    columns:
+      key:
+        type: string
+        placeholder: Key
+      contact:
+        type: object
+        fields:
+          name:
+            type: string
+            placeholder: Contact name
+          email:
+            type: string
+            placeholder: Contact email
+
+# 3. object -> list -> table
+projects:
+  type: object
+  fields:
+    title:
+      type: string
+      placeholder: Title
+    sprints:
+      type: list
+      item:
+        type: table
+        columns:
+          task:
+            type: string
+            placeholder: Task
+          hours:
+            type: number
+            placeholder: Hours
+
+# 4. object -> table -> list
+catalog:
+  type: object
+  fields:
+    name:
+      type: string
+      placeholder: Catalog
+    products:
+      type: table
+      columns:
+        sku:
+          type: string
+          placeholder: SKU
+        tags:
+          type: list
+          item type: string
+
+# 5. table -> object -> list
+matrix:
+  type: table
+  columns:
+    title:
+      type: string
+      placeholder: Title
+    profile:
+      type: object
+      fields:
+        owner:
+          type: string
+          placeholder: Owner
+        skills:
+          type: list
+          item type: string
+
+# 6. table -> list -> object
+ledger:
+  type: table
+  columns:
+    account:
+      type: string
+      placeholder: Account
+    transactions:
+      type: list
+      item:
+        type: object
+        fields:
+          desc:
+            type: string
+            placeholder: Description
+          amount:
+            type: number
+            placeholder: Amount

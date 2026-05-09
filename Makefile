@@ -53,7 +53,7 @@ $(CONTRIBUTION): doc/lua-placeholders-manual.pdf clean
 		--exclude=doc/.latexmkrc \
 		-czvf $(CONTRIBUTION) ./README.md ./doc ./scripts ./tex
 
-test: test-example test-tables test-lists test-objects
+test: test-example test-tables test-lists test-objects test-complex
 
 # ---------------------------------------------------------------------------
 # Per-type case tests live under test/cases/<name>.tex (with sibling
@@ -133,6 +133,7 @@ endef
 
 $(eval $(call CASE_template,lists))
 $(eval $(call CASE_template,objects))
+$(eval $(call CASE_template,complex))
 
 $(TEST_BUILD_DIR)/example.pdf: $(EXAMPLE_DIR)/example.tex \
                                $(EXAMPLE_DIR)/example.yaml \

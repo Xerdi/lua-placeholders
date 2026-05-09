@@ -1,0 +1,95 @@
+%% complex.tex -- All six permutations of {list, object, table} composed
+%% three deep.  Each section labels the chain in compact form, e.g.
+%% list[object[table]], and exercises it end-to-end with the existing
+%% type-specific commands.  No glue is needed between layers: every level
+%% pushes a context frame and get_param walks the stack so an inner row
+%% macro reaches whatever cell, field, or item it names.
+%%
+%% For chains where a list's item type is itself a list or table (which
+%% has no natural "field name"), the current item is bound under the
+%% synthetic key 'self' so the iteration macro can reach it via
+%% \fortablerow{self}{...} or \forlistitem{self}{...}.
+\documentclass{article}
+\usepackage{lua-placeholders}
+\usepackage[autolanguage]{numprint}
+
+\loadrecipe[\jobname]{complex-spec.yaml}
+\loadpayload[\jobname]{complex-payload.yaml}
+
+\setlength{\parindent}{0pt}
+\newcommand\itemBullet[1]{\textbullet\ #1\quad}
+
+\begin{document}
+
+    % --- 1. list[object[table]] ---
+    \section*{1. \texttt{list[object[table]]} --- companies}
+
+    \newcommand\employeeRow{\name & \role \\}
+    \newcommand\companyRow{%
+        \subsection*{\company}
+        \begin{tabular}{l|l}
+            \textbf{Name} & \textbf{Role} \\\hline
+            \fortablerow{employees}{employeeRow}
+        \end{tabular}\par
+    }
+    \forlistitem{companies}{companyRow}
+
+    % --- 2. list[table[object]] ---
+    \section*{2. \texttt{list[table[object]]} --- sites}
+
+    \newcommand\contactRow{\key & \paramfield{contact}{name} & \paramfield{contact}{email} \\}
+    \newcommand\siteBlock{%
+        \begin{tabular}{l|l|l}
+            \textbf{Key} & \textbf{Contact} & \textbf{Email} \\\hline
+            \fortablerow{self}{contactRow}
+        \end{tabular}\par\medskip
+    }
+    \forlistitem{sites}{siteBlock}
+
+    % --- 3. object[list[table]] ---
+    \section*{3. \texttt{object[list[table]]} --- projects.sprints}
+
+    \newcommand\sprintTaskRow{\task & \hours \\}
+    \newcommand\sprintBlock{%
+        \begin{tabular}{l|r}
+            \textbf{Task} & \textbf{Hours} \\\hline
+            \fortablerow{self}{sprintTaskRow}
+        \end{tabular}\par\medskip
+    }
+    \begin{paramobject}{projects}
+        Project: \title\par\medskip
+        \forlistitem{sprints}{sprintBlock}
+    \end{paramobject}
+
+    % --- 4. object[table[list]] ---
+    \section*{4. \texttt{object[table[list]]} --- catalog.products with tags}
+
+    \newcommand\productRow{\sku & \forlistitem{tags}{itemBullet} \\}
+    \begin{paramobject}{catalog}
+        Catalog: \name\par
+        \begin{tabular}{l|l}
+            \textbf{SKU} & \textbf{Tags} \\\hline
+            \fortablerow{products}{productRow}
+        \end{tabular}
+    \end{paramobject}
+
+    % --- 5. table[object[list]] ---
+    \section*{5. \texttt{table[object[list]]} --- matrix with profile.skills}
+
+    \newcommand\matrixRow{\title & \begin{paramobject}{profile}\owner: \forlistitem{skills}{itemBullet}\end{paramobject} \\}
+    \begin{tabular}{l|l}
+        \textbf{Title} & \textbf{Profile} \\\hline
+        \fortablerow{matrix}{matrixRow}
+    \end{tabular}
+
+    % --- 6. table[list[object]] ---
+    \section*{6. \texttt{table[list[object]]} --- ledger.transactions}
+
+    \newcommand\txItem{(\desc, \amount)\quad}
+    \newcommand\ledgerRow{\account & \forlistitem{transactions}{txItem} \\}
+    \begin{tabular}{l|l}
+        \textbf{Account} & \textbf{Transactions} \\\hline
+        \fortablerow{ledger}{ledgerRow}
+    \end{tabular}
+
+\end{document}

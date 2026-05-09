@@ -1,0 +1,83 @@
+companies:
+  - company: Acme Corp
+    employees:
+      - name: Alice
+        role: Engineer
+      - name: Bob
+        role: Designer
+  - company: Globex
+    employees:
+      - name: Carol
+        role: PM
+      - name: Dave
+        role: Engineer
+      - name: Eve
+        role: SRE
+
+sites:
+  -
+    - key: web
+      contact:
+        name: Alice
+        email: alice@web.io
+    - key: api
+      contact:
+        name: Bob
+        email: bob@api.io
+  -
+    - key: db
+      contact:
+        name: Carol
+        email: carol@db.io
+
+projects:
+  title: Engine
+  sprints:
+    -
+      - task: Setup
+        hours: 8
+      - task: Refactor
+        hours: 16
+    -
+      - task: Polish
+        hours: 4
+
+catalog:
+  name: Hardware
+  products:
+    - sku: A100
+      tags:
+        - drill
+        - power-tool
+    - sku: B200
+      tags:
+        - hammer
+        - hand-tool
+        - classic
+
+matrix:
+  - title: Frontend
+    profile:
+      owner: Alice
+      skills:
+        - react
+        - css
+  - title: Backend
+    profile:
+      owner: Bob
+      skills:
+        - go
+        - sql
+        - redis
+
+ledger:
+  - account: Cash
+    transactions:
+      - desc: Opening
+        amount: 100
+      - desc: Refund
+        amount: -25
+  - account: Revenue
+    transactions:
+      - desc: Sale
+        amount: 500
