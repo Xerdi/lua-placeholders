@@ -48,17 +48,17 @@
 \providecommand\paramfieldterm{\xspace}
 
 % --- Boolean flag bridge ----------------------------------------------------
-% Lua emits \paramnewbool{key} when a bool-typed parameter is declared, and
-% \paramsetbool{key}{true|false} when its value is loaded.  We avoid \newif
-% because its internal \@if / \if@ machinery only works for literal CS names
-% (it breaks when the CS is built via \csname in a context where @ isn't a
-% letter --- i.e. plain LuaTeX).  Instead we just \let the if-token directly
-% to \iftrue or \iffalse, which works identically in plain TeX and LaTeX,
-% supports keys with spaces, and has no package dependency.
+% Lua emits \paramnewbool{key} when a bool-typed parameter is declared and
+% \paramsetbool{key}{true|false} when its value is loaded.  We \let the
+% if-token directly to \iftrue / \iffalse (no \newif, whose internal
+% \@if / \if@ machinery breaks for \csname-built names).  \paramnewbool
+% routes through \@ifundefined so the literal \iffalse stays in a brace
+% argument, hidden from TeX's skip-scanner -- otherwise a second call for
+% the same key trips on it with "Incomplete \ifx".
 \providecommand\paramnewbool[1]{%
-    \expandafter\ifx\csname if#1\endcsname\relax
-        \expandafter\let\csname if#1\endcsname=\iffalse
-    \fi%
+    \@ifundefined{if#1}{%
+        \expandafter\let\csname if#1\endcsname=\iffalse%
+    }{}%
 }
 % Dispatch \paramsetbool{key}{true|false} to a per-value helper.  Putting
 % \iftrue/\iffalse inside an \if-conditional branch trips TeX's skip scanner
