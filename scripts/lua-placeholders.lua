@@ -23,8 +23,8 @@ if not modules then
 end
 
 modules.lua_placeholders = {
-    version = "2.0.1",
-    date = "2026/05/09",
+    version = "2.0.2",
+    date = "2026/05/19",
     comment = 'Lua Placeholders — for specifying and inserting document parameters',
     author = 'Erik Nijenhuis',
     license = 'free'
