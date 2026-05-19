@@ -53,7 +53,14 @@ $(CONTRIBUTION): doc/lua-placeholders-manual.pdf clean
 		--exclude=doc/.latexmkrc \
 		-czvf $(CONTRIBUTION) ./README.md ./doc ./scripts ./tex
 
-test: test-example test-tables test-lists test-objects test-complex test-complex-empty test-luatex
+test: test-example test-tables test-lists test-objects test-complex test-complex-empty test-luatex test-parse-filename
+
+# ---------------------------------------------------------------------------
+# Plain-Lua unit test for namespace.parse_filename.  Runs the script under
+# `lua` (no LuaTeX needed)
+# ---------------------------------------------------------------------------
+test-parse-filename:
+	@cd $(PACKAGE_DIR) && lua test/unit/parse-filename.lua
 
 # ---------------------------------------------------------------------------
 # Per-type case tests live under test/cases/<name>.tex (with sibling

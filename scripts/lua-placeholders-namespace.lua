@@ -30,7 +30,8 @@ local namespace = {
 
 function namespace.parse_filename(path)
     local abs_path = kpse.find_file(path)
-    local _, _, name = abs_path:find('/?%w*/*(%w+)%.%w+')
+    local filename = abs_path:match('([^/]+)$')
+    local name = filename and filename:match('^(.+)%.[^.]+$') or filename
     return name, abs_path
 end
 
