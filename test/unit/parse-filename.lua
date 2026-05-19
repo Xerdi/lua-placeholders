@@ -11,6 +11,12 @@
 -- resolved to 'texmf').  This test pins down the behaviour against a
 -- variety of path shapes so a regression cannot slip back in.
 
+-- Stub the LuaTeX runtime symbols loaded transitively by the namespace
+-- module so the script runs under plain Lua (kpse is queried by
+-- parse_filename; token.create is referenced at common.lua load time).
+token = { create = function(name) return name end }
+kpse = { find_file = function(path) return path end }
+
 -- Run-from-package-root or run-from-its-own-directory both work.
 package.path = './scripts/?.lua;../../scripts/?.lua;' .. package.path
 
