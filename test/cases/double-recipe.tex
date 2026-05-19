@@ -1,0 +1,38 @@
+%% double-recipe.tex -- MWE for the "Incomplete \ifx" error that surfaces
+%% when two recipes loaded in sequence declare the same bool key (even
+%% under different namespaces).
+%%
+%% Trigger: in scripts/lua-placeholders.lua, every bool param emits
+%% \paramnewbool{<key>} via tex.sprint while the recipe is being loaded.
+%% \paramnewbool is defined in tex/lua-placeholders.sty as:
+%%
+%%   \providecommand\paramnewbool[1]{%
+%%     \expandafter\ifx\csname if#1\endcsname\relax
+%%         \expandafter\let\csname if#1\endcsname=\iffalse
+%%     \fi}
+%%
+%% First call for a given key (e.g. "active") succeeds: \csname if<key>\endcsname
+%% is undefined, the \ifx is true, and \let\if<key>=\iffalse defines the flag.
+%% Second call for the SAME key fails: \csname if<key>\endcsname is now
+%% \iffalse (not \relax), so the \ifx is false and TeX enters its
+%% conditional-skip mode for the then-branch.  The skipper does not
+%% understand \let's grammar; it sees the literal \iffalse on the right of
+%% \let and counts it as a new conditional opener, then scans past the
+%% single \fi looking for an unmatched closer.  TeX hits EOF (or an
+%% unbalanced location later in the document) and reports
+%% "Incomplete \ifx; all text was ignored after line <wherever>".
+%%
+%% Both recipes here use deliberately small, anonymised payloads so the
+%% test stays self-contained and easy to reason about.
+\documentclass{article}
+\usepackage{lua-placeholders}
+
+\loadrecipe[klant]{double-recipe-klant.yaml}
+\loadrecipe[bedrijf]{double-recipe-bedrijf.yaml}
+
+\begin{document}
+Klant active: \ifparam[klant]{active}{Y}{N}\par
+Bedrijf active: \ifparam[bedrijf]{active}{Y}{N}\par
+Klant name: \param[klant]{name}\par
+Bedrijf name: \param[bedrijf]{name}\par
+\end{document}

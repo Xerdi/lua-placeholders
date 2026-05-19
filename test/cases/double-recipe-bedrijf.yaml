@@ -1,0 +1,6 @@
+name:
+  type: string
+  placeholder: Company name
+active:
+  type: bool
+  default: true

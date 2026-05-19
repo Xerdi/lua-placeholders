@@ -97,6 +97,17 @@ function api.recipe(path, namespace_name)
     local filename, abs_path = lua_placeholders_namespace.parse_filename(path)
     local raw_recipe = load_resource(abs_path)
     local name = namespace_name or raw_recipe.namespace or filename
+    -- Catch the silent-collision case: a second \loadrecipe resolving to a
+    -- namespace name that already has a recipe (e.g. two files in the same
+    -- directory mistakenly parsed to the same basename, or two
+    -- \loadrecipe[same-name]{...} calls).  Without this guard the second
+    -- call would overwrite the first's parameters in place and re-emit
+    -- \paramnewbool for any shared bool keys -- which trips TeX's
+    -- conditional-skip scanner ("Incomplete \ifx").
+    if api.namespaces[name] and api.namespaces[name].recipe_loaded then
+        tex.error('lua-placeholders: namespace "' .. name .. '" already has a recipe loaded; refusing to load "' .. path .. '"')
+        return
+    end
     local namespace = api.namespaces[name] or lua_placeholders_namespace:new { recipe_file = abs_path, strict = api.strict }
     if not api.namespaces[name] then
         api.namespaces[name] = namespace

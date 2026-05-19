@@ -1,0 +1,6 @@
+name:
+  type: string
+  placeholder: Customer name
+active:
+  type: bool
+  default: false
